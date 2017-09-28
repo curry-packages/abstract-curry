@@ -1,0 +1,22 @@
+{
+    "name": "abstract-curry",
+    "version": "1.0.0",
+    "author": "Michael Hanus <mh@informatik.uni-kiel.de>",
+    "synopsis": "Libraries to deal with AbstractCurry programs",
+    "category": [ "Metaprogramming" ],
+    "license": "BSD-3-Clause",
+    "licenseFile": "LICENSE",
+    "dependencies": {
+    },
+    "compilerCompatibility": {
+        "pakcs": ">= 1.14.0, < 2.0.0",
+        "kics2": ">= 0.5.0, < 2.0.0"
+    },
+    "exportedModules": [ "AbstractCurry.Build", "AbstractCurry.Files",
+                         "AbstractCurry.Pretty", "AbstractCurry.Select",
+                         "AbstractCurry.Transform", "AbstractCurry.Types" ],
+    "source": {
+        "git": "https://git.ps.informatik.uni-kiel.de/curry-packages/abstract-curry.git",
+        "tag": "$version"
+    }
+}
