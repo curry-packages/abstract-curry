@@ -4,7 +4,7 @@
 --- This library provides a pretty-printer for AbstractCurry modules.
 ---
 --- @author  Yannik Potdevin (with changes by Michael Hanus)
---- @version March 2016
+--- @version October 2016
 --- @category meta
 --- --------------------------------------------------------------------------
 
@@ -22,7 +22,7 @@ module AbstractCurry.Pretty
     , ppMName, ppExports, ppImports
 
     , ppCOpDecl, ppCTypeDecl, ppCFuncDecl, ppCFuncDeclWithoutSig, ppCRhs
-    , ppCFuncSignature, ppCTypeExpr, ppCRules, ppCRule
+    , ppCFuncSignature, ppCQualTypeExpr, ppCTypeExpr, ppCRules, ppCRule
     , ppCPattern, ppCLiteral, ppCExpr
     , ppCStatement, ppQFunc, ppFunc, ppQType, ppType)
     where
@@ -45,6 +45,7 @@ data Qualification
                 --   identifiers and those of Prelude.
     | OnDemand  -- ^ Fully qualify only identifiers which need to be.
     | None      -- ^ Do not qualify any function.
+ deriving Eq
 
 --- The choice for a generally preferred layout.
 --- @cons PreferNestedLayout - prefer a layout where the arguments of
@@ -208,11 +209,15 @@ prettyCurryProg opts cprog = pretty (pageWidth opts) $ ppCurryProg opts cprog
 --- in the program if qualified pretty printing is used.
 --- This is necessary to avoid errors w.r.t. names re-exported by modules.
 ppCurryProg :: Options -> CurryProg -> Doc
-ppCurryProg opts cprog@(CurryProg m ms ts fs os) = vsepBlank
+ppCurryProg opts cprog@(CurryProg m ms dfltdecl clsdecls instdecls ts fs os) =
+  vsepBlank
     [ (nest' opts' $ sep [ text "module" <+> ppMName m, ppExports opts' ts fs])
        </> where_
     , ppImports opts' allImports
     , vcatMap (ppCOpDecl opts') os
+    , ppCDefaultDecl opts' dfltdecl
+    , vsepBlankMap (ppCClassDecl opts') clsdecls
+    , vsepBlankMap (ppCInstanceDecl opts') instdecls
     , vsepBlankMap (ppCTypeDecl opts') ts
     , vsepBlankMap (ppCFuncDecl opts') fs ]
  where
@@ -271,7 +276,7 @@ ppImports opts imps = vcatMap (\m -> text importmode <+> ppMName m)
    importmode = if qualification opts `elem` [Imports,Full]
                 then "import qualified"
                 else "import"
-                
+
 --- Pretty-print operator precedence declarations.
 ppCOpDecl :: Options -> COpDecl -> Doc
 ppCOpDecl _ (COp qn fix p) =
@@ -283,18 +288,47 @@ ppCFixity CInfixOp  = text "infix"
 ppCFixity CInfixlOp = text "infixl"
 ppCFixity CInfixrOp = text "infixr"
 
+--- Pretty-print operator precedence declarations.
+ppCDefaultDecl :: Options -> Maybe CDefaultDecl -> Doc
+ppCDefaultDecl _ Nothing = empty
+ppCDefaultDecl opts (Just (CDefaultDecl texps)) =
+  text "default" <+> filledTupled (map (ppCTypeExpr opts) texps)
+
+--- Pretty-print a class declaration.
+ppCClassDecl :: Options -> CClassDecl -> Doc
+ppCClassDecl opts (CClass qn _ ctxt tvar funcs) =
+  hsep [ text "class", ppCContext opts ctxt, ppType qn, ppCTVarIName opts tvar
+       , text "where"]
+  <$!$> indent' opts (vsepBlankMap (ppCFuncClassDecl opts) funcs)
+
+--- Pretty-print an instance declaration.
+ppCInstanceDecl :: Options -> CInstanceDecl -> Doc
+ppCInstanceDecl opts (CInstance qn ctxt texp funcs) =
+  hsep [ text "instance", ppCContext opts ctxt
+       , ppType qn, ppCTypeExpr' 2 opts texp, text "where"]
+  <$!$> indent' opts (vsepBlankMap (ppCFuncDeclWithoutSig opts) funcs)
+
 --- Pretty-print type declarations, like `data ... = ...`, `type ... = ...` or
 --- `newtype ... = ...`.
 ppCTypeDecl :: Options -> CTypeDecl -> Doc
-ppCTypeDecl opts (CType qn _ tVars cDecls)
-    = hsep [ text "data", ppType qn, ppCTVarINames opts tVars
-           , if null cDecls then empty else ppCConsDecls opts cDecls]
+ppCTypeDecl opts (CType qn _ tVars cDecls derivings) =
+  hsep [ text "data", ppType qn, ppCTVarINames opts tVars
+       , if null cDecls then empty else ppCConsDecls opts cDecls]
+  <$!$> ppDeriving opts derivings
 ppCTypeDecl opts (CTypeSyn qn _ tVars tExp)
     = hsep [ text "type", ppType qn, ppCTVarINames opts tVars
            , align $ equals <+> ppCTypeExpr opts tExp]
-ppCTypeDecl opts (CNewType qn _ tVars cDecl)
-    = hsep [ text "newtype", ppType qn, ppCTVarINames opts tVars, equals
-           , ppCConsDecl opts cDecl]
+ppCTypeDecl opts (CNewType qn _ tVars cDecl derivings) =
+  hsep [ text "newtype", ppType qn, ppCTVarINames opts tVars, equals
+       , ppCConsDecl opts cDecl]
+  <$!$> ppDeriving opts derivings
+
+--- Pretty-print deriving clause.
+ppDeriving :: Options -> [QName] -> Doc
+ppDeriving _    []   = empty
+ppDeriving opts [cn] = text " deriving" <+> ppQType opts cn
+ppDeriving opts cls@(_:_:_) =
+  text " deriving" <+> alignedTupled (map (ppQType opts) cls)
 
 --- Pretty-print a list of constructor declarations, including the `=` sign.
 ppCConsDecls :: Options -> [CConsDecl] -> Doc
@@ -304,10 +338,18 @@ ppCConsDecls opts cDecls =
 
 --- Pretty-print a constructor declaration.
 ppCConsDecl :: Options -> CConsDecl -> Doc
-ppCConsDecl opts (CCons   qn _ tExps ) = ppFunc qn
-                                     <+> hsepMap (ppCTypeExpr' 2 opts) tExps
-ppCConsDecl opts (CRecord qn _ fDecls) =
-    ppFunc qn <+> alignedSetSpaced (map (ppCFieldDecl opts) fDecls)
+ppCConsDecl opts (CCons   ctvars ctxt qn _ tExps ) =
+  hsep [ ppForallTVars opts ctvars, ppCContext opts ctxt
+       , ppFunc qn, hsepMap (ppCTypeExpr' 2 opts) tExps]
+ppCConsDecl opts (CRecord ctvars ctxt qn _ fDecls) =
+  hsep [ ppForallTVars opts ctvars, ppCContext opts ctxt
+       , ppFunc qn <+> alignedSetSpaced (map (ppCFieldDecl opts) fDecls)]
+
+--- Pretty-print a variable (existiantial) quantifiction.
+ppForallTVars :: Options -> [CTVarIName] -> Doc
+ppForallTVars _ [] = empty
+ppForallTVars opts tvars@(_:_) =
+  text "forall" <+> hsep (map (ppCTVarIName opts) tvars) <+> text "."
 
 --- Pretty-print a record field declaration (`field :: type`).
 ppCFieldDecl :: Options -> CFieldDecl -> Doc
@@ -315,13 +357,25 @@ ppCFieldDecl opts (CField qn _ tExp) = hsep [ ppFunc qn
                                             , doubleColon
                                             , ppCTypeExpr opts tExp ]
 
+--- Pretty-print a document comment.
+ppCDocComment :: String -> Doc
+ppCDocComment cmt = vsepMap (text . ("--- " ++)) (lines cmt)
+
+--- Pretty-print a function declaration occurring in a class declaration.
+ppCFuncClassDecl :: Options -> CFuncDecl -> Doc
+ppCFuncClassDecl opts fDecl@(CFunc qn _ _ tExp rs) =
+    ppCFuncSignature opts qn tExp
+    <$!$> ppCRulesWithoutExternal funcDeclOpts qn rs
+ where funcDeclOpts = addFuncNamesToOpts (funcNamesOfFDecl fDecl) opts
+ppCFuncClassDecl opts (CmtFunc cmt qn a v tExp rs) =
+    ppCDocComment cmt <$!$> ppCFuncClassDecl opts (CFunc qn a v tExp rs)
+
 --- Pretty-print a function declaration.
 ppCFuncDecl :: Options -> CFuncDecl -> Doc
 ppCFuncDecl opts fDecl@(CFunc qn _ _ tExp _) =
     ppCFuncSignature opts qn tExp <$!$> ppCFuncDeclWithoutSig opts fDecl
 ppCFuncDecl opts (CmtFunc cmt qn a v tExp rs) =
-    vsepMap (text . ("--- " ++)) (lines cmt)
-    <$!$> ppCFuncDecl opts (CFunc qn a v tExp rs)
+    ppCDocComment cmt <$!$> ppCFuncDecl opts (CFunc qn a v tExp rs)
 
 --- Pretty-print a function declaration without signature.
 ppCFuncDeclWithoutSig :: Options -> CFuncDecl -> Doc
@@ -329,17 +383,35 @@ ppCFuncDeclWithoutSig opts fDecl@(CFunc qn _ _ _ rs) =
     ppCRules funcDeclOpts qn rs
     where funcDeclOpts = addFuncNamesToOpts (funcNamesOfFDecl fDecl) opts
 ppCFuncDeclWithoutSig opts (CmtFunc cmt qn a v tExp rs) =
-    vsepMap (text . ("--- " ++)) (lines cmt)
-    <$!$> ppCFuncDeclWithoutSig opts (CFunc qn a v tExp rs)
+    ppCDocComment cmt <$!$> ppCFuncDeclWithoutSig opts (CFunc qn a v tExp rs)
 
 --- Pretty-print a function signature according to given options.
-ppCFuncSignature :: Options -> QName -> CTypeExpr -> Doc
+ppCFuncSignature :: Options -> QName -> CQualTypeExpr -> Doc
 ppCFuncSignature opts qn tExp
     | isUntyped tExp = empty
     | otherwise = nest' opts
                 $ sep [ genericPPName parsIfInfix qn
-                      , align $ doubleColon <+> ppCTypeExpr opts tExp ]
-    where isUntyped te = te == CTCons (pre "untyped") []
+                      , align $ doubleColon <+> ppCQualTypeExpr opts tExp ]
+ where
+  isUntyped te = te == CQualType (CContext []) (CTCons (pre "untyped"))
+
+--- Pretty-print a qualified type expression.
+ppCQualTypeExpr :: Options -> CQualTypeExpr -> Doc
+ppCQualTypeExpr opts (CQualType clsctxt texp) =
+  ppCContext opts clsctxt <+> ppCTypeExpr opts texp
+
+--- Pretty-print a class context.
+ppCContext :: Options -> CContext -> Doc
+ppCContext _ (CContext []) = empty
+ppCContext opts (CContext [clscon]) =
+  ppCConstraint opts clscon <+> text "=>"
+ppCContext opts (CContext ctxt@(_:_:_)) =
+  alignedTupled (map (ppCConstraint opts) ctxt) <+> text "=>"
+
+--- Pretty-print a single class constraint.
+ppCConstraint :: Options -> CConstraint -> Doc
+ppCConstraint opts (cn,texp) =
+  ppQType opts cn <+> ppCTypeExpr' prefAppPrec opts texp
 
 --- Pretty-print a type expression.
 ppCTypeExpr :: Options -> CTypeExpr -> Doc
@@ -355,15 +427,32 @@ ppCTypeExpr' _ opts (CTVar     tvar) = ppCTVarIName opts tvar
 ppCTypeExpr' p opts (CFuncType tExp1 tExp2) =
     parensIf (p > tlPrec)
   $ sep [ ppCTypeExpr' 1 opts tExp1, rarrow <+> ppCTypeExpr opts tExp2]
-ppCTypeExpr' p opts (CTCons qn tExps)
-    | null tExps     = ppQType opts qn
-    | isListCons qn  = brackets . (ppCTypeExpr opts) . head $ tExps -- assume singleton
-    | isTupleCons qn = alignedTupled $ map (ppCTypeExpr opts) tExps
+ppCTypeExpr' _ opts (CTCons qn) = ppQType opts qn
+
+ppCTypeExpr' p opts texp@(CTApply tcon targ) =
+  maybe (parensIf (p >= 2) $ ppCTypeExpr' 2 opts tcon
+                         <+> ppCTypeExpr' 2 opts targ)
+        (\qn -> ppCTypeTConApply qn (argsOfApply texp))
+        (funOfApply texp)
+ where
+  ppCTypeTConApply qn targs
+    | isListCons qn  = brackets . ppCTypeExpr opts . head $ targs -- assume singleton
+    | isTupleCons qn = alignedTupled $ map (ppCTypeExpr opts) targs
     | otherwise      = parensIf (p >= 2)
                      $ ppQType opts qn
-                   <+> hsepMap (ppCTypeExpr' 2 opts) tExps
+                   <+> hsepMap (ppCTypeExpr' 2 opts) targs
 
---- Pretty-print a list of type variables horizontally separating them by `space`.
+  funOfApply te = case te of CTApply (CTCons qn) _ -> Just qn
+                             CTApply tc _          -> funOfApply tc
+                             _                     -> Nothing
+
+  argsOfApply te = case te of
+    CTApply (CTCons _) ta -> [ta]
+    CTApply tc         ta -> argsOfApply tc ++ [ta]
+    _                     -> [] -- should not occur
+
+--- Pretty-print a list of type variables horizontally separating them
+--- by `space`.
 ppCTVarINames :: Options -> [CTVarIName] -> Doc
 ppCTVarINames opts = hsepMap (ppCTVarIName opts)
 
@@ -372,10 +461,17 @@ ppCTVarIName :: Options -> CTVarIName -> Doc
 ppCTVarIName _ (_, tvar) = text tvar
 
 --- Pretty-print a list of function rules, concatenated vertically.
+--- If there are no rules, an external rule is printed.
 ppCRules :: Options -> QName -> [CRule] -> Doc
 ppCRules opts qn rs
     | null rs   = genericPPName parsIfInfix qn <+> text "external"
     | otherwise = vcatMap (ppCRule opts qn) rs
+
+--- Pretty-print a list of function rules, concatenated vertically.
+--- If there are no rules, an empty document is returned.
+ppCRulesWithoutExternal :: Options -> QName -> [CRule] -> Doc
+ppCRulesWithoutExternal opts qn rs =
+  if null rs then empty else vcatMap (ppCRule opts qn) rs
 
 --- Pretty-print a rule of a function. Given a function
 --- `f x y = x * y`, then `x y = x * y` is a rule consisting of `x y` as list of
@@ -634,7 +730,7 @@ ppCExpr' p opts (CCase cType exp cases) =
         , ppCases opts cases]
 ppCExpr' p opts (CTyped exp tExp) =
     parensIf (p > tlPrec)
-  $ hsep [ppCExpr opts exp, doubleColon, ppCTypeExpr opts tExp]
+  $ hsep [ppCExpr opts exp, doubleColon, ppCQualTypeExpr opts tExp]
 ppCExpr' _ opts (CRecConstr qn rFields) =
     ppQFunc opts qn <+> ppRecordFields opts rFields
 ppCExpr' p opts (CRecUpdate exp rFields) = ppCExpr' p opts exp
@@ -715,9 +811,8 @@ genericPPQName visNames visVars g opts qn@(m, f)
                            else name
           isAmbiguous n = anyCol (on' (&&) (sameName n) (diffMod n)) visNames
           isShadowed n  = anyCol (sameName n) visVars
-          sameName      :: (a, c) -> (b, c) -> Bool
-          sameName      = \(_,x) (_,y) -> x == y
           diffMod       = (/=) `on` fst
+          sameName (_,x) (_,y) = x == y
 
 genericPPName :: (QName -> Doc -> Doc) -> QName -> Doc
 genericPPName f qn = f qn $ text . snd $ qn

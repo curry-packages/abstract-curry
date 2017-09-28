@@ -2,7 +2,7 @@
 --- This library provides some useful operations to write programs
 --- that generate AbstractCurry programs in a more compact and readable way.
 ---
---- @version February 2016
+--- @version October 2016
 --- @category meta
 ------------------------------------------------------------------------
 
@@ -13,7 +13,29 @@ import AbstractCurry.Types
 infixr 9 ~>
 
 ------------------------------------------------------------------------
+-- Goodies to construct type declarations
+
+--- Constructs a simple `CurryProg` without type classes and instances.
+simpleCurryProg :: String -> [String] -> [CTypeDecl] -> [CFuncDecl] -> [COpDecl]
+                -> CurryProg
+simpleCurryProg name imps types funcs ops =
+  CurryProg name imps Nothing [] [] types funcs ops
+
+------------------------------------------------------------------------
+-- Goodies to construct type declarations
+
+--- Constructs a simple constructor declaration without quantified
+--- type variables and type class constraints.
+simpleCCons :: QName -> CVisibility -> [CTypeExpr] -> CConsDecl
+simpleCCons = CCons [] (CContext [])
+
+------------------------------------------------------------------------
 -- Goodies to construct type expressions
+
+--- A type application of a qualified type constructor name to a list of
+--- argument types.
+applyTC :: QName -> [CTypeExpr] -> CTypeExpr
+applyTC f es = foldl CTApply (CTCons f) es 
 
 --- A function type.
 (~>) :: CTypeExpr -> CTypeExpr -> CTypeExpr
@@ -21,27 +43,29 @@ t1 ~> t2 = CFuncType t1 t2
 
 --- A base type.
 baseType :: QName -> CTypeExpr
-baseType t = CTCons t []
+baseType t = CTCons t
 
 --- Constructs a list type from an element type.
 listType :: CTypeExpr -> CTypeExpr
-listType a = CTCons (pre "[]") [a]
+listType a = CTApply (CTCons (pre "[]")) a
 
 --- Constructs a tuple type from list of component types.
 tupleType :: [CTypeExpr] -> CTypeExpr
-tupleType ts | l==0 = baseType (pre "()")
-             | l==1 = head ts
-             | otherwise = CTCons (pre ('(' : take (l-1) (repeat ',') ++ ")"))
-                                  ts
+tupleType ts
+ | l==0 = baseType (pre "()")
+ | l==1 = head ts
+ | otherwise = foldl CTApply
+                     (CTCons (pre ('(' : take (l-1) (repeat ',') ++ ")")))
+                     ts
  where l = length ts
 
 --- Constructs an IO type from a type.
 ioType :: CTypeExpr -> CTypeExpr
-ioType a = CTCons (pre "IO") [a]
+ioType a = CTApply (CTCons (pre "IO")) a
 
 --- Constructs a Maybe type from element type.
 maybeType :: CTypeExpr -> CTypeExpr
-maybeType a = CTCons (pre "Maybe") [a]
+maybeType a = CTApply (CTCons (pre "Maybe")) a
 
 --- The type expression of the String type.
 stringType :: CTypeExpr
@@ -71,20 +95,34 @@ unitType = baseType (pre "()")
 dateType :: CTypeExpr
 dateType = baseType ("Time", "CalendarTime")
 
+--- A qualified type with empty class constraints.
+emptyClassType :: CTypeExpr -> CQualTypeExpr
+emptyClassType te = CQualType (CContext []) te
+
 ------------------------------------------------------------------------
 -- Goodies to construct function declarations
 
 --- Constructs a function declaration from a given qualified function name,
 --- arity, visibility, type expression and list of defining rules.
-cfunc :: QName -> Int -> CVisibility -> CTypeExpr -> [CRule] -> CFuncDecl
+cfunc :: QName -> Int -> CVisibility -> CQualTypeExpr -> [CRule] -> CFuncDecl
 cfunc = CFunc
 
 --- Constructs a function declaration from a given comment,
 --- qualified function name,
 --- arity, visibility, type expression and list of defining rules.
-cmtfunc :: String -> QName -> Int -> CVisibility -> CTypeExpr -> [CRule]
+cmtfunc :: String -> QName -> Int -> CVisibility -> CQualTypeExpr -> [CRule]
         -> CFuncDecl
 cmtfunc = CmtFunc
+
+-- Constructs a `CFunc` with simple (unqualified) type expression.
+stFunc :: QName -> Int -> CVisibility -> CTypeExpr -> [CRule] -> CFuncDecl
+stFunc name arity vis texp rs = cfunc name arity vis (emptyClassType texp) rs
+
+-- Constructs a `CmtFunc` with simple (unqualified) type expression.
+stCmtFunc :: String -> QName -> Int -> CVisibility -> CTypeExpr -> [CRule]
+          -> CFuncDecl
+stCmtFunc cm name arity vis texp rs =
+  cmtfunc cm name arity vis (emptyClassType texp) rs
 
 --- Constructs a simple rule with a pattern list and an
 --- unconditional right-hand side.

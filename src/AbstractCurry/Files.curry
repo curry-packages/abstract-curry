@@ -7,7 +7,7 @@
 --- extension `.acy` in the subdirectory `.curry`
 ---
 --- @author Michael Hanus, Bjoern Peemoeller
---- @version October 2015
+--- @version October 2016
 --- @category meta
 -- ---------------------------------------------------------------------------
 
@@ -56,7 +56,7 @@ tryReadCurryWithImports modname = collect [] [modname]
       eProg <- tryReadCurryFile m
       case eProg of
         Left err                          -> return (Left [err])
-        Right prog@(CurryProg _ is _ _ _) -> do
+        Right prog@(CurryProg _ is _ _ _ _ _ _) -> do
           results <- collect (m:imported) (ms ++ is)
           return (either Left (Right . (prog :)) results)
 
@@ -97,10 +97,11 @@ tryParse fn = do
       if line1 /= "{- "++version++" -}"
         then cancel $ "Could not parse AbstractCurry file '" ++ fn
                    ++ "': incompatible versions"
-        else case readsUnqualifiedTerm ["AbstractCurry.Types","Prelude"] lines of
-          [(p,tl)]  | all isSpace tl -> return (Right p)
-          _ -> cancel $ "Could not parse AbstractCurry file '" ++ fn
-                        ++ "': no parse"
+        else
+          case readsUnqualifiedTerm ["AbstractCurry.Types","Prelude"] lines of
+            [(p,tl)]  | all isSpace tl -> return (Right p)
+            _ -> cancel $ "Could not parse AbstractCurry file '" ++ fn
+                          ++ "': no parse"
  where cancel str = return (Left str)
 
 --- I/O action which parses a Curry program and returns the corresponding
@@ -218,12 +219,13 @@ tryReadACYFile fn = do
     let (line1,lines) = break (=='\n') src
     if line1 /= "{- "++version++" -}"
       then error $ "AbstractCurry: incompatible file found: "++fn
-      else case readsUnqualifiedTerm ["AbstractCurry.Types","Prelude"] lines of
-        []       -> cancel
-        [(p,tl)] -> if all isSpace tl
-                      then return $ Just p
-                      else cancel
-        _        -> cancel
+      else
+        case readsUnqualifiedTerm ["AbstractCurry.Types","Prelude"] lines of
+          []       -> cancel
+          [(p,tl)] -> if all isSpace tl
+                        then return $ Just p
+                        else cancel
+          _        -> cancel
   cancel = return Nothing
 
 --- Writes an AbstractCurry program into a file in ".acy" format.

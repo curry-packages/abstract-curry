@@ -3,7 +3,7 @@
 --- in AbstractCurry programs, i.e., it provides a collection of
 --- selector functions for AbstractCurry.
 ---
---- @version May 2016
+--- @version October 2016
 --- @category meta
 ------------------------------------------------------------------------
 
@@ -11,10 +11,11 @@ module AbstractCurry.Select
   ( progName, imports, functions, constructors, types, publicFuncNames
   , publicConsNames, publicTypeNames
 
+  , typeOfQualType, classConstraintsOfQualType
   , typeName, typeVis, typeCons
   , consName, consVis
   , isBaseType, isPolyType, isFunctionalType, isIOType, isIOReturnType
-  , argTypes, resultType, tvarsOfType, tconsOfType, modsOfType
+  , argTypes, resultType, tvarsOfType, tconsOfType, modsOfType, tconsArgsOfType
 
   , funcName, funcArity, funcComment, funcVis, funcType, funcRules
   , ruleRHS, ldeclsOfRule
@@ -34,15 +35,15 @@ import List(union)
 
 -- Returns the name of a given Curry program.
 progName :: CurryProg -> String
-progName (CurryProg modname _ _ _ _) = modname
+progName (CurryProg modname _ _ _ _ _ _ _) = modname
 
 --- Returns the imports (module names) of a given Curry program.
 imports :: CurryProg -> [MName]
-imports (CurryProg _ ms _ _ _) = ms
+imports (CurryProg _ ms _ _ _ _ _ _) = ms
 
 --- Returns the function declarations of a given Curry program.
 functions :: CurryProg -> [CFuncDecl]
-functions (CurryProg _ _ _ fs _) = fs
+functions (CurryProg _ _ _ _ _ _ fs _) = fs
 
 --- Returns all constructors of given Curry program.
 constructors :: CurryProg -> [CConsDecl]
@@ -50,7 +51,7 @@ constructors = concatMap typeCons . types
 
 --- Returns the type declarations of a given Curry program.
 types :: CurryProg -> [CTypeDecl]
-types (CurryProg _ _ ts _ _) = ts
+types (CurryProg _ _ _ _ _ ts _ _) = ts
 
 --- Returns the names of all visible functions in given Curry program.
 publicFuncNames :: CurryProg -> [QName]
@@ -69,45 +70,54 @@ publicTypeNames = map typeName . filter ((== Public) . typeVis) . types
 ------------------------------------------------------------------------
 -- Selectors for type expressions
 
+--- Returns the type expression of a qualified type.
+typeOfQualType :: CQualTypeExpr -> CTypeExpr
+typeOfQualType (CQualType _ te) = te
+
+--- Returns the class constraints of a qualified type.
+classConstraintsOfQualType :: CQualTypeExpr -> [CConstraint]
+classConstraintsOfQualType (CQualType (CContext cc) _) = cc
+
 --- Returns the name of a given type declaration
 typeName :: CTypeDecl -> QName
-typeName (CType    n _ _ _) = n
-typeName (CTypeSyn n _ _ _) = n
-typeName (CNewType n _ _ _) = n
+typeName (CType    n _ _ _ _) = n
+typeName (CTypeSyn n _ _ _  ) = n
+typeName (CNewType n _ _ _ _) = n
 
---- Returns the visibility of a given type declaration
+--- Returns the visibility of a given type declaration.
 typeVis :: CTypeDecl -> CVisibility
-typeVis (CType    _ vis _ _) = vis
-typeVis (CTypeSyn _ vis _ _) = vis
-typeVis (CNewType _ vis _ _) = vis
+typeVis (CType    _ vis _ _ _) = vis
+typeVis (CTypeSyn _ vis _ _  ) = vis
+typeVis (CNewType _ vis _ _ _) = vis
 
 --- Returns the constructors of a given type declaration.
 typeCons :: CTypeDecl -> [CConsDecl]
-typeCons (CType    _ _ _ cs) = cs
-typeCons (CTypeSyn _ _ _ _ ) = []
-typeCons (CNewType _ _ _ c ) = [c]
+typeCons (CType    _ _ _ cs _) = cs
+typeCons (CTypeSyn _ _ _ _   ) = []
+typeCons (CNewType _ _ _ c  _) = [c]
 
 --- Returns the name of a given constructor declaration.
 consName :: CConsDecl -> QName
-consName (CCons   n _ _) = n
-consName (CRecord n _ _) = n
+consName (CCons   _ _ n _ _) = n
+consName (CRecord _ _ n _ _) = n
 
 --- Returns the visibility of a given constructor declaration.
 consVis :: CConsDecl -> CVisibility
-consVis (CCons   _ vis _) = vis
-consVis (CRecord _ vis _) = vis
+consVis (CCons   _ _ _ vis _) = vis
+consVis (CRecord _ _ _ vis _) = vis
 
 --- Returns true if the type expression is a base type.
 isBaseType :: CTypeExpr -> Bool
 isBaseType texp = case texp of
-  CTCons _ args -> null args
-  _             -> False
+  CTCons _ -> True
+  _        -> False
 
 --- Returns true if the type expression contains type variables.
 isPolyType :: CTypeExpr -> Bool
 isPolyType (CTVar                _) = True
 isPolyType (CFuncType domain range) = isPolyType domain || isPolyType range
-isPolyType (CTCons      _ typelist) = any isPolyType typelist
+isPolyType (CTCons    _)            = False
+isPolyType (CTApply tcon texp)      = isPolyType tcon || isPolyType texp
 
 --- Returns true if the type expression is a functional type.
 isFunctionalType :: CTypeExpr -> Bool
@@ -118,45 +128,57 @@ isFunctionalType texp = case texp of
 --- Returns true if the type expression is (IO t).
 isIOType :: CTypeExpr -> Bool
 isIOType texp = case texp of
-  CTCons tc _ -> tc == pre "IO"
-  _           -> False
+  CTApply (CTCons tc) _ -> tc == pre "IO"
+  _                     -> False
 
 --- Returns true if the type expression is (IO t) with t/=() and
 --- t is not functional
 isIOReturnType :: CTypeExpr -> Bool
-isIOReturnType (CTVar            _) = False
-isIOReturnType (CFuncType      _ _) = False
-isIOReturnType (CTCons tc typelist) =
-  tc==pre "IO" && head typelist /= CTCons (pre "()") []
-  && not (isFunctionalType (head typelist))
+isIOReturnType (CTVar     _)   = False
+isIOReturnType (CFuncType _ _) = False
+isIOReturnType (CTCons    _)   = False
+isIOReturnType (CTApply tcon targ) =
+  tcon == CTCons (pre "IO") && targ /= CTCons (pre "()")
+  && not (isFunctionalType targ)
 
 --- Returns all argument types from a functional type
 argTypes :: CTypeExpr -> [CTypeExpr]
-argTypes (CTVar         _) = []
-argTypes (CTCons      _ _) = []
-argTypes (CFuncType t1 t2) = t1 : argTypes t2
+argTypes texp = case texp of CFuncType t1 t2 -> t1 : argTypes t2
+                             _               -> []
 
 --- Return the result type from a (nested) functional type
 resultType :: CTypeExpr -> CTypeExpr
-resultType (CTVar          n) = CTVar n
-resultType (CTCons name args) = CTCons name args
-resultType (CFuncType   _ t2) = resultType t2
+resultType texp = case texp of CFuncType _ t2 -> resultType t2
+                               _              -> texp
 
 --- Returns all type variables occurring in a type expression.
 tvarsOfType :: CTypeExpr -> [CTVarIName]
 tvarsOfType (CTVar v) = [v]
 tvarsOfType (CFuncType t1 t2) = tvarsOfType t1 ++ tvarsOfType t2
-tvarsOfType (CTCons _ args) = concatMap tvarsOfType args
+tvarsOfType (CTCons _)        = []
+tvarsOfType (CTApply t1 t2)   = tvarsOfType t1 ++ tvarsOfType t2
 
 --- Returns all type constructors used in the given type.
 tconsOfType :: CTypeExpr -> [QName]
 tconsOfType (CTVar            _) = []
 tconsOfType (CFuncType t1 t2) = tconsOfType t1 `union` tconsOfType t2
-tconsOfType (CTCons tc tys)   = foldr union [tc] $ map tconsOfType tys
+tconsOfType (CTCons tc)       = [tc]
+tconsOfType (CTApply t1 t2)   = tconsOfType t1 `union` tconsOfType t2
 
 --- Returns all modules used in the given type.
 modsOfType :: CTypeExpr -> [String]
 modsOfType = map fst . tconsOfType
+
+--- Transforms a type constructor application into a pair of the type
+--- constructor and the argument types, if possible.
+tconsArgsOfType :: CTypeExpr -> Maybe (QName,[CTypeExpr])
+tconsArgsOfType (CTVar       _) = Nothing
+tconsArgsOfType (CFuncType _ _) = Nothing
+tconsArgsOfType (CTCons tc)     = Just (tc,[])
+tconsArgsOfType (CTApply te ta) =
+  maybe Nothing
+        (\ (tc,targs) -> Just (tc,targs++[ta]))
+        (tconsArgsOfType te)
 
 ------------------------------------------------------------------------
 -- Selectors for function definitions
@@ -182,7 +204,7 @@ funcVis (CFunc     _ _ vis _ _) = vis
 funcVis (CmtFunc _ _ _ vis _ _) = vis
 
 --- Returns the type of a given function declaration.
-funcType :: CFuncDecl -> CTypeExpr
+funcType :: CFuncDecl -> CQualTypeExpr
 funcType (CFunc     _ _ _ texp _) = texp
 funcType (CmtFunc _ _ _ _ texp _) = texp
 
