@@ -18,5 +18,9 @@
     "source": {
         "git": "https://git.ps.informatik.uni-kiel.de/curry-packages/abstract-curry.git",
         "tag": "$version"
+    },
+    "testsuite": {
+        "src-dir": "test",
+        "modules": [  "TestAbstractCurry" ]
     }
 }
