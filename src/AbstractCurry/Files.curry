@@ -6,7 +6,7 @@
 --- Assumption: an abstract Curry program is stored in file with
 --- extension `.acy` in the subdirectory `.curry`
 ---
---- @author Michael Hanus, Bjoern Peemoeller, Jan Tikovsky
+--- @author Michael Hanus, Bjoern Peemoeller, Jan Tikovsky, Finn Teegen
 --- @version November 2017
 --- @category meta
 -- ---------------------------------------------------------------------------
@@ -15,7 +15,7 @@ module AbstractCurry.Files where
 
 import AbstractCurry.Select (imports)
 import AbstractCurry.Types
-import Char                 (isSpace, toUpper)
+import Char                 (isSpace)
 import Directory            (doesFileExist, getModificationTime)
 import Distribution
 import FileGoodies          (getFileInPath, lookupFileInPath)
@@ -30,7 +30,7 @@ import ReadShowTerm
 --- or ".lcurry") and the result is a Curry term representing this
 --- program.
 readCurry :: String -> IO CurryProg
-readCurry prog = readCurryWithParseOptions prog ccParams
+readCurry prog = readCurryWithParseOptions prog (setQuiet True defaultParams)
 
 --- Read an AbstractCurry file with all its imports.
 --- @param modname - Module name or file name of Curry module
@@ -66,7 +66,7 @@ tryReadCurryFile m = do
   case mbSrc of
     Nothing      -> cancel $ "Source module '" ++ m ++ "' not found"
     Just (_,srcFile) -> do
-      callFrontendWithParams ACY ccParams m
+      callFrontendWithParams ACY (setQuiet True defaultParams) m
       mbFn <- getLoadPathForModule m >>=
               lookupFileInPath (abstractCurryFileName m) [""]
       case mbFn of
@@ -116,7 +116,7 @@ tryParse fn = do
 --- the function declaration contains the type `(CTCons ("Prelude","untyped")`.
 readUntypedCurry :: String -> IO CurryProg
 readUntypedCurry prog =
-  readUntypedCurryWithParseOptions prog ccParams
+  readUntypedCurryWithParseOptions prog (setQuiet True defaultParams)
 
 --- I/O action which reads a typed Curry program from a file (with extension
 --- ".acy") with respect to some parser options.
@@ -233,12 +233,5 @@ tryReadACYFile fn = do
 --- (with suffix ".acy").
 writeAbstractCurryFile :: String -> CurryProg -> IO ()
 writeAbstractCurryFile file prog = writeFile file (showTerm prog)
-
---- frontend params (quiet and definition for conditional compiling set)
-ccParams :: FrontendParams
-ccParams = setQuiet True $ setDefinitions defs defaultParams
- where
-  defs = [( "__" ++ map toUpper curryCompiler ++ "__"
-          , curryCompilerMajorVersion * 100 + curryCompilerMinorVersion )]
 
 ------------------------------------------------------------------------------
