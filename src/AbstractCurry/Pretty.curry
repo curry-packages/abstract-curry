@@ -4,8 +4,7 @@
 --- This library provides a pretty-printer for AbstractCurry modules.
 ---
 --- @author  Yannik Potdevin (with changes by Michael Hanus)
---- @version October 2016
---- @category meta
+--- @version June 2018
 --- --------------------------------------------------------------------------
 
 module AbstractCurry.Pretty
@@ -306,7 +305,7 @@ ppCClassDecl opts (CClass qn _ ctxt tvar funcs) =
 ppCInstanceDecl :: Options -> CInstanceDecl -> Doc
 ppCInstanceDecl opts (CInstance qn ctxt texp funcs) =
   hsep [ text "instance", ppCContext opts ctxt
-       , ppType qn, ppCTypeExpr' 2 opts texp, text "where"]
+       , ppQType opts qn, ppCTypeExpr' 2 opts texp, text "where"]
   <$!$> indent' opts (vsepBlankMap (ppCFuncDeclWithoutSig opts) funcs)
 
 --- Pretty-print type declarations, like `data ... = ...`, `type ... = ...` or
