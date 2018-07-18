@@ -16,7 +16,7 @@ module AbstractCurry.Transform where
 
 import AbstractCurry.Types
 import AbstractCurry.Select
-import List (nub, union)
+import Data.List            (nub, union)
 
 --- This type synonym is useful to denote the type of an update,
 --- where the first argument is the type of values which are updated
@@ -279,7 +279,7 @@ updCFuncDecl :: (String -> String)
              -> ([CRule] -> [CRule])
              -> CFuncDecl -> CFuncDecl
 updCFuncDecl fc fn fa fv ft fr = trCFuncDecl func
- where 
+ where
   func cmt name arity vis t rules =
     if null cmt
     then CFunc (fn name) (fa arity) (fv vis) (ft t) (fr rules)
@@ -411,7 +411,7 @@ trExpr var lit sym app lam clet cdo lcomp cas typ rcon rupd exp = trE exp
   trE (CTyped e te) = typ (trE e) te
   trE (CRecConstr rn fds) = rcon rn (map (\ (lb,e) -> (lb, trE e)) fds)
   trE (CRecUpdate e  fds) = rupd (trE e) (map (\ (lb,v) -> (lb, trE v)) fds)
- 
+
 ----------------------------------------------------------------------------
 -- CStatement
 
@@ -449,7 +449,7 @@ renameCurryModule newname prog =
 updQNamesInCProg :: Update CurryProg QName
 updQNamesInCProg f =
   updCProg id
-           id 
+           id
            (updQNamesInCDefaultDecl f)
            (map (updQNamesInCClassDecl f))
            (map (updQNamesInCInstanceDecl f))
@@ -567,7 +567,7 @@ updQNamesInCExpr f =
   ctyped exp texp = CTyped exp (updQNamesInCQualTypeExpr f texp)
   reccon rec fields = CRecConstr (f rec) (map (\ (l,e) -> (f l,e)) fields)
   recupd exp fields = CRecUpdate exp (map (\ (l,e) -> (f l,e)) fields)
-  
+
 -------------------------------------------------------------------------
 --- Extracts all type names occurring in a program.
 typesOfCurryProg :: CurryProg -> [QName]
@@ -701,7 +701,7 @@ funcsOfExpr =
          (\e _ -> e)
          (\_ fields -> concatMap snd fields)
          (\e fields -> e ++ concatMap snd fields)
-         
+
 funcsOfStat :: CStatement -> [QName]
 funcsOfStat = trCStatement funcsOfExpr
                            (const funcsOfExpr)

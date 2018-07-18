@@ -13,14 +13,14 @@
 
 module AbstractCurry.Files where
 
-import AbstractCurry.Select (imports)
+import AbstractCurry.Select ( imports )
 import AbstractCurry.Types
-import Char                 (isSpace)
-import Directory            (doesFileExist, getModificationTime)
+import Data.Char            ( isSpace )
+import Data.Maybe           ( isNothing )
+import System.FilePath      ( takeFileName, (</>), (<.>) )
+import System.Directory     ( doesFileExist, getModificationTime
+                            , getFileWithSuffix, findFileWithSuffix )
 import Distribution
-import FileGoodies          (getFileInPath, lookupFileInPath)
-import FilePath             (takeFileName, (</>), (<.>))
-import Maybe                (isNothing)
 import ReadShowTerm
 
 -- ---------------------------------------------------------------------------
@@ -68,7 +68,7 @@ tryReadCurryFile m = do
     Just (_,srcFile) -> do
       callFrontendWithParams ACY (setQuiet True defaultParams) m
       mbFn <- getLoadPathForModule m >>=
-              lookupFileInPath (abstractCurryFileName m) [""]
+              findFileWithSuffix (abstractCurryFileName m) [""]
       case mbFn of
         Nothing -> cancel $ "AbstractCurry module '" ++ m ++ "' not found"
         Just fn -> do
@@ -132,7 +132,7 @@ readCurryWithParseOptions progname options = do
   case mbsrc of
     Nothing -> do -- no source file, try to find AbstractCurry file in load path:
       loadpath <- getLoadPathForModule progname
-      filename <- getFileInPath (abstractCurryFileName modname) [""] loadpath
+      filename <- getFileWithSuffix (abstractCurryFileName modname) [""] loadpath
       readAbstractCurryFile filename
     Just (dir,_) -> do
       callFrontendWithParams ACY options progname
@@ -153,8 +153,8 @@ readUntypedCurryWithParseOptions progname options = do
   case mbsrc of
     Nothing -> do -- no source file, try to find AbstractCurry file in load path:
       loadpath <- getLoadPathForModule progname
-      filename <- getFileInPath (untypedAbstractCurryFileName modname) [""]
-                                loadpath
+      filename <- getFileWithSuffix (untypedAbstractCurryFileName modname) [""]
+                                    loadpath
       readAbstractCurryFile filename
     Just (dir,_) -> do
       callFrontendWithParams UACY options progname

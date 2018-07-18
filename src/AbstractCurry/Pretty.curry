@@ -29,9 +29,9 @@ module AbstractCurry.Pretty
 import AbstractCurry.Select hiding (varsOfLDecl, varsOfFDecl, varsOfStat)
 import AbstractCurry.Types
 import AbstractCurry.Transform (typesOfCurryProg, funcsOfCurryProg)
-import Function                (on)
-import List                    (partition, union, scanl, last, nub, (\\))
-import Maybe                   (isJust, fromJust)
+import Data.Function           (on)
+import Data.List               (partition, union, scanl, last, nub, (\\))
+import Data.Maybe              (isJust, fromJust)
 
 import Text.Pretty hiding      ( list, listSpaced, tupled, tupledSpaced, set
                                , setSpaced )
