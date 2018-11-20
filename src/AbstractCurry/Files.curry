@@ -7,21 +7,23 @@
 --- extension `.acy` in the subdirectory `.curry`
 ---
 --- @author Michael Hanus, Bjoern Peemoeller, Jan Tikovsky, Finn Teegen
---- @version November 2017
---- @category meta
+--- @version November 2018
 -- ---------------------------------------------------------------------------
 
 module AbstractCurry.Files where
 
-import AbstractCurry.Select (imports)
-import AbstractCurry.Types
-import Char                 (isSpace)
-import Directory            (doesFileExist, getModificationTime)
-import Distribution
-import FileGoodies          (getFileInPath, lookupFileInPath)
-import FilePath             (takeFileName, (</>), (<.>))
-import Maybe                (isNothing)
+import Char                 ( isSpace )
+import Directory            ( doesFileExist, getModificationTime )
+import Distribution         ( getLoadPathForModule, inCurrySubdir
+                            , lookupModuleSourceInLoadPath, stripCurrySuffix )
+import FileGoodies          ( getFileInPath, lookupFileInPath )
+import FilePath             ( takeFileName, (</>), (<.>) )
 import ReadShowTerm
+
+import System.FrontendExec
+
+import AbstractCurry.Select ( imports )
+import AbstractCurry.Types
 
 -- ---------------------------------------------------------------------------
 --- I/O action which parses a Curry program and returns the corresponding
