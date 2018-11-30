@@ -7,8 +7,7 @@
 --- extension `.acy` in the subdirectory `.curry`
 ---
 --- @author Michael Hanus, Bjoern Peemoeller, Jan Tikovsky, Finn Teegen
---- @version November 2017
---- @category meta
+--- @version November 2018
 -- ---------------------------------------------------------------------------
 
 module AbstractCurry.Files where
@@ -22,6 +21,11 @@ import System.Directory     ( doesFileExist, getModificationTime
                             , getFileWithSuffix, findFileWithSuffix )
 import Distribution
 import ReadShowTerm
+
+import System.FrontendExec
+
+import AbstractCurry.Select ( imports )
+import AbstractCurry.Types
 
 -- ---------------------------------------------------------------------------
 --- I/O action which parses a Curry program and returns the corresponding
