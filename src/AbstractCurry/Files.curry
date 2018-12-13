@@ -7,19 +7,19 @@
 --- extension `.acy` in the subdirectory `.curry`
 ---
 --- @author Michael Hanus, Bjoern Peemoeller, Jan Tikovsky, Finn Teegen
---- @version November 2018
+--- @version December 2018
 -- ---------------------------------------------------------------------------
 
 module AbstractCurry.Files where
 
 import Char                 ( isSpace )
 import Directory            ( doesFileExist, getModificationTime )
-import Distribution         ( getLoadPathForModule, inCurrySubdir
-                            , lookupModuleSourceInLoadPath, stripCurrySuffix )
 import FileGoodies          ( getFileInPath, lookupFileInPath )
 import FilePath             ( takeFileName, (</>), (<.>) )
 import ReadShowTerm
 
+import System.CurryPath     ( getLoadPathForModule, inCurrySubdir
+                            , lookupModuleSourceInLoadPath, stripCurrySuffix )
 import System.FrontendExec
 
 import AbstractCurry.Select ( imports )
