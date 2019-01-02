@@ -12,7 +12,7 @@ import AbstractCurry.Files
 import AbstractCurry.Pretty
 import AbstractCurry.Types
 import Directory
-import Test.EasyCheck
+import Test.Prop
 
 --- Test for equality of an AbstractCurry program with the same program
 --- after pretty printing and reading this AbstractCurry program:
