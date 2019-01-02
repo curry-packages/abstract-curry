@@ -32,8 +32,10 @@ readAndTestEqualFcy mod = do
   renameFile modbak modcurry
   let abstractequal = prog1 == prog2
   unless abstractequal $ do
-    putStrLn $ "Original AbstractCurry program:       " ++ show prog1
-    putStrLn $ "Pretty printed AbstractCurry program: " ++ show prog2
+    putStrLn $ unlines
+      [ "Differences in programs occurred:"
+      , "Original AbstractCurry program:", show prog1
+      , "Pretty printed AbstractCurry program:", show prog2 ]
   return abstractequal
 
 -- Strictly read a AbstractCurry program in order to avoid race conditions
@@ -47,4 +49,4 @@ testAbstractCurryPretty_rev =
   (readAndTestEqualFcy "Rev") `returns` True
                   
 testAbstractCurryPretty_TestAbstractCurry =
-  (readAndTestEqualFcy "TestAbstractCurry") `returns` True
+  (readAndTestEqualFcy "Nat") `returns` True
