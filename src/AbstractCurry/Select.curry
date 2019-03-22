@@ -28,7 +28,7 @@ module AbstractCurry.Select
   ) where
 
 import AbstractCurry.Types
-import Data.List           (union)
+import Data.List (union)
 
 ------------------------------------------------------------------------
 -- Selectors for curry programs

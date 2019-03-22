@@ -28,13 +28,14 @@ module AbstractCurry.Pretty
 
 import AbstractCurry.Select hiding (varsOfLDecl, varsOfFDecl, varsOfStat)
 import AbstractCurry.Types
-import AbstractCurry.Transform (typesOfCurryProg, funcsOfCurryProg)
-import Data.Function           (on)
-import Data.List               (partition, union, scanl, last, nub, (\\))
-import Data.Maybe              (isJust, fromJust)
+import AbstractCurry.Transform     (typesOfCurryProg, funcsOfCurryProg)
+import Data.Function               (on)
+import Data.List                   (partition, union, scanl, last, nub, (\\))
+import Data.Maybe                  (isJust, fromJust)
 
-import Text.Pretty hiding      ( list, listSpaced, tupled, tupledSpaced, set
-                               , setSpaced )
+import Text.Pretty hiding          ( list, listSpaced, tupled, tupledSpaced
+                                   , set , setSpaced )
+import Prelude     hiding          ( empty )
 
 type Collection a = [a]
 

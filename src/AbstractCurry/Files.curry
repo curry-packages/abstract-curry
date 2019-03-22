@@ -7,22 +7,19 @@
 --- extension `.acy` in the subdirectory `.curry`
 ---
 --- @author Michael Hanus, Bjoern Peemoeller, Jan Tikovsky, Finn Teegen
---- @version November 2018
+--- @version December 2018
 -- ---------------------------------------------------------------------------
 
 module AbstractCurry.Files where
 
-import AbstractCurry.Select ( imports )
-import AbstractCurry.Types
 import Data.Char            ( isSpace )
-import Data.Maybe           ( isNothing )
-import System.FilePath      ( takeFileName, (</>), (<.>) )
 import System.Directory     ( doesFileExist, getModificationTime
-                            , getFileWithSuffix, findFileWithSuffix )
-import Distribution
-import ReadShowTerm
-
+                            , findFileWithSuffix, getFileWithSuffix )
+import System.FilePath      ( takeFileName, (</>), (<.>) )
+import System.CurryPath     ( getLoadPathForModule, inCurrySubdir
+                            , lookupModuleSourceInLoadPath, stripCurrySuffix )
 import System.FrontendExec
+import ReadShowTerm
 
 import AbstractCurry.Select ( imports )
 import AbstractCurry.Types
@@ -158,7 +155,7 @@ readUntypedCurryWithParseOptions progname options = do
     Nothing -> do -- no source file, try to find AbstractCurry file in load path:
       loadpath <- getLoadPathForModule progname
       filename <- getFileWithSuffix (untypedAbstractCurryFileName modname) [""]
-                                    loadpath
+                                loadpath
       readAbstractCurryFile filename
     Just (dir,_) -> do
       callFrontendWithParams UACY options progname

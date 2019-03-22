@@ -7,9 +7,10 @@
     "license": "BSD-3-Clause",
     "licenseFile": "LICENSE",
     "dependencies": {
-        "wl-pprint"     : ">= 2.0.0",
-        "frontend-exec" : ">= 0.0.1",
-        "base"          : ">= 2.0.0"
+        "base"          : ">= 2.0.0, < 3.0.0",
+        "currypath"     : ">= 2.0.0",
+        "frontend-exec" : ">= 2.0.0",
+        "wl-pprint"     : ">= 2.0.0"
     },
     "compilerCompatibility": {
         "pakcs": ">= 2.0.0",
