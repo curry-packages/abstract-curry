@@ -10,7 +10,8 @@
         "base"          : ">= 2.0.0, < 3.0.0",
         "currypath"     : ">= 2.0.0",
         "frontend-exec" : ">= 2.0.0",
-        "wl-pprint"     : ">= 2.0.0"
+        "wl-pprint"     : ">= 2.0.0",
+        "read-legacy"   : ">= 2.0.0"
     },
     "compilerCompatibility": {
         "pakcs": ">= 2.0.0",
