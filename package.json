@@ -16,8 +16,8 @@
         "read-legacy"   : ">= 3.0.0, < 4.0.0"
     },
     "compilerCompatibility": {
-        "pakcs": ">= 2.0.0",
-        "kics2": ">= 2.0.0"
+        "pakcs": ">= 3.0.0, < 4.0.0",
+        "kics2": ">= 3.0.0, < 4.0.0"
     },
     "exportedModules": [ "AbstractCurry.Build", "AbstractCurry.Files",
                          "AbstractCurry.Pretty", "AbstractCurry.Select",
