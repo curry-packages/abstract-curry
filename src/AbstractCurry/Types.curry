@@ -9,8 +9,7 @@
 --- extension .acy
 ---
 --- @author Michael Hanus, Bjoern Peemoeller, Finn Teegen
---- @version October 2016
---- @category meta
+--- @version November 2020
 -- ---------------------------------------------------------------------------
 
 module AbstractCurry.Types where

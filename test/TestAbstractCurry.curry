@@ -5,14 +5,16 @@
 --- "curry-check testAbstractCurry"
 ---
 --- @author Michael Hanus
---- @version September 2017
+--- @version November 2020
 ------------------------------------------------------------------------------
+
+import Control.Monad ( unless )
+import Test.Prop
 
 import AbstractCurry.Files
 import AbstractCurry.Pretty
 import AbstractCurry.Types
 import System.Directory
-import Test.EasyCheck
 
 --- Test for equality of an AbstractCurry program with the same program
 --- after pretty printing and reading this AbstractCurry program:
@@ -32,8 +34,10 @@ readAndTestEqualFcy mod = do
   renameFile modbak modcurry
   let abstractequal = prog1 == prog2
   unless abstractequal $ do
-    putStrLn $ "Original AbstractCurry program:       " ++ show prog1
-    putStrLn $ "Pretty printed AbstractCurry program: " ++ show prog2
+    putStrLn $ unlines
+      [ "Differences in programs occurred:"
+      , "Original AbstractCurry program:", show prog1
+      , "Pretty printed AbstractCurry program:", show prog2 ]
   return abstractequal
 
 -- Strictly read a AbstractCurry program in order to avoid race conditions
@@ -46,5 +50,5 @@ readAbstractCurryStrict mod = do
 testAbstractCurryPretty_rev =
   (readAndTestEqualFcy "Rev") `returns` True
 
-testAbstractCurryPretty_TestAbstractCurry =
-  (readAndTestEqualFcy "TestAbstractCurry") `returns` True
+--testAbstractCurryPretty_TestAbstractCurry =
+--  (readAndTestEqualFcy "TestAbstractCurry") `returns` True
