@@ -27,7 +27,7 @@ simpleCurryProg name imps types funcs ops =
 --- Constructs a simple constructor declaration without quantified
 --- type variables and type class constraints.
 simpleCCons :: QName -> CVisibility -> [CTypeExpr] -> CConsDecl
-simpleCCons = CCons [] (CContext [])
+simpleCCons = CCons
 
 ------------------------------------------------------------------------
 -- Goodies to construct type expressions

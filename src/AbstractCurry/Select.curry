@@ -98,13 +98,13 @@ typeCons (CNewType _ _ _ c  _) = [c]
 
 --- Returns the name of a given constructor declaration.
 consName :: CConsDecl -> QName
-consName (CCons   _ _ n _ _) = n
-consName (CRecord _ _ n _ _) = n
+consName (CCons   n _ _) = n
+consName (CRecord n _ _) = n
 
 --- Returns the visibility of a given constructor declaration.
 consVis :: CConsDecl -> CVisibility
-consVis (CCons   _ _ _ vis _) = vis
-consVis (CRecord _ _ _ vis _) = vis
+consVis (CCons   _ vis _) = vis
+consVis (CRecord _ vis _) = vis
 
 --- Returns true if the type expression is a base type.
 isBaseType :: CTypeExpr -> Bool
