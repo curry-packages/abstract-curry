@@ -15,10 +15,6 @@
         "wl-pprint"     : ">= 3.0.0, < 4.0.0",
         "read-legacy"   : ">= 3.0.0, < 4.0.0"
     },
-    "compilerCompatibility": {
-        "pakcs": ">= 3.0.0, < 4.0.0",
-        "kics2": ">= 3.0.0, < 4.0.0"
-    },
     "exportedModules": [ "AbstractCurry.Build", "AbstractCurry.Files",
                          "AbstractCurry.Pretty", "AbstractCurry.Select",
                          "AbstractCurry.Transform", "AbstractCurry.Types" ],
