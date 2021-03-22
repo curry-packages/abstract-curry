@@ -3,16 +3,18 @@
 ---
 --- To run all tests automatically by the currycheck tool, use the command:
 --- "curry-check testAbstractCurry"
---- 
+---
 --- @author Michael Hanus
---- @version September 2017
+--- @version November 2020
 ------------------------------------------------------------------------------
+
+import Control.Monad ( unless )
+import Test.Prop
 
 import AbstractCurry.Files
 import AbstractCurry.Pretty
 import AbstractCurry.Types
-import Directory
-import Test.Prop
+import System.Directory
 
 --- Test for equality of an AbstractCurry program with the same program
 --- after pretty printing and reading this AbstractCurry program:
@@ -47,6 +49,6 @@ readAbstractCurryStrict mod = do
 
 testAbstractCurryPretty_rev =
   (readAndTestEqualFcy "Rev") `returns` True
-                  
-testAbstractCurryPretty_TestAbstractCurry =
-  (readAndTestEqualFcy "Nat") `returns` True
+
+--testAbstractCurryPretty_TestAbstractCurry =
+--  (readAndTestEqualFcy "TestAbstractCurry") `returns` True

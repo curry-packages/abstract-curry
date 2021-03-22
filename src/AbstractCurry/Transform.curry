@@ -16,7 +16,8 @@ module AbstractCurry.Transform where
 
 import AbstractCurry.Types
 import AbstractCurry.Select
-import List (nub, union)
+
+import Data.List (nub, union)
 
 --- This type synonym is useful to denote the type of an update,
 --- where the first argument is the type of values which are updated
@@ -160,32 +161,30 @@ updCTypeDeclName f = updCTypeDecl f id id id id id id
 
 --- Transforms a constructor declaration.
 trCConsDecl ::
-     ([CTVarIName] -> CContext -> QName -> CVisibility -> [CTypeExpr]  -> a)
-  -> ([CTVarIName] -> CContext -> QName -> CVisibility -> [CFieldDecl] -> a)
+     (QName -> CVisibility -> [CTypeExpr]  -> a)
+  -> (QName -> CVisibility -> [CFieldDecl] -> a)
   -> CConsDecl -> a
-trCConsDecl cons _ (CCons   qtvars ctxt name vis args) =
-  cons qtvars ctxt name vis args
-trCConsDecl _ rec  (CRecord qtvars ctxt name vis args) =
-  rec  qtvars ctxt name vis args
+trCConsDecl cons _ (CCons   name vis args) =
+  cons name vis args
+trCConsDecl _ rec  (CRecord name vis args) =
+  rec  name vis args
 
 --- Updates a constructor declaration.
-updCConsDecl :: ([CTVarIName] -> [CTVarIName])
-             -> (CContext -> CContext)
-             -> (QName -> QName)
+updCConsDecl :: (QName -> QName)
              -> (CVisibility  -> CVisibility)
              -> ([CTypeExpr]  -> [CTypeExpr])
              -> ([CFieldDecl] -> [CFieldDecl])
              -> CConsDecl -> CConsDecl
-updCConsDecl fqv fc fn fv fts ffs = trCConsDecl cons rec
+updCConsDecl fn fv fts ffs = trCConsDecl cons rec
  where
-  cons qtvars ctxt name vis args =
-    CCons   (fqv qtvars) (fc ctxt) (fn name) (fv vis) (fts args)
-  rec  qtvars ctxt name vis args =
-    CRecord (fqv qtvars) (fc ctxt) (fn name) (fv vis) (ffs args)
+  cons name vis args =
+    CCons   (fn name) (fv vis) (fts args)
+  rec  name vis args =
+    CRecord (fn name) (fv vis) (ffs args)
 
 --- Updates the name of a constructor declaration.
 updCConsDeclName :: Update CConsDecl QName
-updCConsDeclName f = updCConsDecl id id f id id id
+updCConsDeclName f = updCConsDecl f id id id
 
 ----------------------------------------------------------------------------
 -- CFieldDecl
@@ -491,7 +490,7 @@ updQNamesInCTypeDecl f =
 --- Updates all qualified names in a constructor declaration.
 updQNamesInCConsDecl :: Update CConsDecl QName
 updQNamesInCConsDecl f =
-  updCConsDecl id (updQNamesInCContext f) f id
+  updCConsDecl f id
                (map (updQNamesInCTypeExpr f))
                (map (updQNamesInCFieldDecl f))
 
@@ -607,10 +606,8 @@ typesOfCTypeDecl =
 
 typesOfConsDecl :: CConsDecl -> [QName]
 typesOfConsDecl =
-  trCConsDecl (\_ ctxt _ _ texps   -> typesOfContext ctxt ++
-                                      concatMap typesOfTypeExpr texps)
-              (\_ ctxt _ _ fddecls -> typesOfContext ctxt ++
-                                      concatMap typesOfFieldDecl fddecls)
+  trCConsDecl (\_ _ texps   -> concatMap typesOfTypeExpr texps)
+              (\_ _ fddecls -> concatMap typesOfFieldDecl fddecls)
 
 typesOfFieldDecl :: CFieldDecl -> [QName]
 typesOfFieldDecl = trCFieldDecl (\_ _ texp -> typesOfTypeExpr texp)
@@ -663,8 +660,8 @@ funcsOfCTypeDecl =
 
 funcsOfConsDecl :: CConsDecl -> [QName]
 funcsOfConsDecl =
-  trCConsDecl (\_ _ qn _ _       -> [qn])
-              (\_ _ qn _ fddecls -> qn : concatMap funcsOfFieldDecl fddecls)
+  trCConsDecl (\qn _ _       -> [qn])
+              (\qn _ fddecls -> qn : concatMap funcsOfFieldDecl fddecls)
 
 funcsOfFieldDecl :: CFieldDecl -> [QName]
 funcsOfFieldDecl = trCFieldDecl (\qn _ _ -> [qn])

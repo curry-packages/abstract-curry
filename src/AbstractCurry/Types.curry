@@ -9,8 +9,7 @@
 --- extension .acy
 ---
 --- @author Michael Hanus, Bjoern Peemoeller, Finn Teegen
---- @version October 2016
---- @category meta
+--- @version November 2020
 -- ---------------------------------------------------------------------------
 
 module AbstractCurry.Types where
@@ -21,7 +20,7 @@ module AbstractCurry.Types where
 
 --- Current version of AbstractCurry
 version :: String
-version = "AbstractCurry 2.0"
+version = "AbstractCurry 3.0"
 
 --- A module name.
 type MName = String
@@ -109,16 +108,15 @@ data CInstanceDecl = CInstance QName CContext CTypeExpr [CFuncDecl]
 ---
 --- A data type definition of the form
 ---
----     data t x1...xn = ...| forall y1...ym . cx => c t1....tkc |...
+---     data t x1...xn = ...| c t1....tkc |...
 ---       deriving (d1,...,dp)
 ---
 --- is represented by the Curry term
 ---
 ---     (CType t v [i1,...,in]
----            [...(CCons [l1,...,lm] cx c kc v [t1,...,tkc])...] [d1,...,dp]))
+---            [...(CCons c v [t1,...,tkc])...] [d1,...,dp]))
 ---
---- where each `ij` is the index of the type variable `xj`, each 'lj' is the
---- index of the existentially quantified type variable 'yj' and 'v' is the
+--- where each `ij` is the index of the type variable `xj` and 'v' is the
 --- visibility of the type resp. constructor.
 ---
 --- Note: the type variable indices are unique inside each type declaration
@@ -138,13 +136,12 @@ data CTypeDecl
 --- the name written in the source program).
 type CTVarIName = (Int, String)
 
---- A constructor declaration consists of a list of existentially
---- quantified type variables, a context, the name of the constructor
+--- A constructor declaration consists of the name of the constructor
 --- and a list of the argument types of the constructor.
 --- The arity equals the number of types.
 data CConsDecl
-  = CCons   [CTVarIName] CContext QName CVisibility [CTypeExpr]
-  | CRecord [CTVarIName] CContext QName CVisibility [CFieldDecl]
+  = CCons   QName CVisibility [CTypeExpr]
+  | CRecord QName CVisibility [CFieldDecl]
   deriving (Eq, Show)
 
 --- A record field declaration consists of the name of the

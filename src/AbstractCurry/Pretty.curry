@@ -28,13 +28,14 @@ module AbstractCurry.Pretty
 
 import AbstractCurry.Select hiding (varsOfLDecl, varsOfFDecl, varsOfStat)
 import AbstractCurry.Types
-import AbstractCurry.Transform (typesOfCurryProg, funcsOfCurryProg)
-import Function                (on)
-import List                    (partition, union, scanl, last, nub, (\\))
-import Maybe                   (isJust, fromJust)
+import AbstractCurry.Transform     (typesOfCurryProg, funcsOfCurryProg)
+import Data.Function               (on)
+import Data.List                   (partition, union, scanl, last, nub, (\\))
+import Data.Maybe                  (isJust, fromJust)
 
-import Text.Pretty hiding      ( list, listSpaced, tupled, tupledSpaced, set
-                               , setSpaced )
+import Text.Pretty hiding          ( list, listSpaced, tupled, tupledSpaced
+                                   , set , setSpaced )
+import Prelude     hiding          ( empty )
 
 type Collection a = [a]
 
@@ -338,18 +339,10 @@ ppCConsDecls opts cDecls =
 
 --- Pretty-print a constructor declaration.
 ppCConsDecl :: Options -> CConsDecl -> Doc
-ppCConsDecl opts (CCons   ctvars ctxt qn _ tExps ) =
-  hsep [ ppForallTVars opts ctvars, ppCContext opts ctxt
-       , ppFunc qn, hsepMap (ppCTypeExpr' 2 opts) tExps]
-ppCConsDecl opts (CRecord ctvars ctxt qn _ fDecls) =
-  hsep [ ppForallTVars opts ctvars, ppCContext opts ctxt
-       , ppFunc qn <+> alignedSetSpaced (map (ppCFieldDecl opts) fDecls)]
-
---- Pretty-print a variable (existiantial) quantifiction.
-ppForallTVars :: Options -> [CTVarIName] -> Doc
-ppForallTVars _ [] = empty
-ppForallTVars opts tvars@(_:_) =
-  text "forall" <+> hsep (map (ppCTVarIName opts) tvars) <+> text "."
+ppCConsDecl opts (CCons   qn _ tExps ) =
+  hsep [ppFunc qn, hsepMap (ppCTypeExpr' 2 opts) tExps]
+ppCConsDecl opts (CRecord qn _ fDecls) =
+  hsep [ppFunc qn <+> alignedSetSpaced (map (ppCFieldDecl opts) fDecls)]
 
 --- Pretty-print a record field declaration (`field :: type`).
 ppCFieldDecl :: Options -> CFieldDecl -> Doc
