@@ -4,7 +4,6 @@
 --- selector functions for AbstractCurry.
 ---
 --- @version October 2016
---- @category meta
 ------------------------------------------------------------------------
 
 module AbstractCurry.Select
@@ -301,7 +300,7 @@ varsOfRule (CRule pats rhs) = concatMap varsOfPat pats ++ varsOfRhs rhs
 -- Operations to compute the function names declared in functions, local
 -- declarations and statements:
 
---- @return The declared function name of given local declaration in a list.
+--- @return The list of declared function names of the given local declaration.
 funcNamesOfLDecl :: CLocalDecl -> [QName]
 funcNamesOfLDecl lDecl =
     case lDecl of CLocalFunc f -> funcNamesOfFDecl f

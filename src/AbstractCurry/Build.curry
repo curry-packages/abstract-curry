@@ -2,8 +2,7 @@
 --- This library provides some useful operations to write programs
 --- that generate AbstractCurry programs in a more compact and readable way.
 ---
---- @version October 2016
---- @category meta
+--- @version June 2023
 ------------------------------------------------------------------------
 
 module AbstractCurry.Build where
@@ -148,6 +147,10 @@ guardedRule pats gs ldecls
 noGuard :: CExpr -> (CExpr, CExpr)
 noGuard e = (CSymbol (pre "True"), e)
 
+--- Transforms an expression into a simple unconditional right-hand side.
+simpleRhs :: CExpr -> CRhs
+simpleRhs exp = CSimpleRhs exp []
+
 ------------------------------------------------------------------------
 -- Goodies to construct expressions and patterns
 
@@ -183,9 +186,20 @@ tupleExpr es | l==0 = constF (pre "()")
                                   es
  where l = length es
 
--- Constructs a let declaration (with possibly empty local delcarations).
+--- Constructs a let declaration (with possibly empty local delcarations).
 letExpr :: [CLocalDecl] -> CExpr -> CExpr
 letExpr locals cexp = if null locals then cexp else CLetDecl locals cexp
+
+--- Constructs a typed expression from an expression and a simple type.
+simpleTyped :: CExpr -> CTypeExpr -> CExpr
+simpleTyped exp texp = CTyped exp (emptyClassType texp)
+
+--- Constructs a do expression. If the list of statements in the do expression
+--- contains a single expression, the do expression is transformed into
+--- a simple expression.
+doExpr :: [CStatement] -> CExpr
+doExpr stats = case stats of [CSExpr exp] -> exp
+                             _            -> CDoExpr stats
 
 --- Constructs from a pattern and an expression a branch for a case expression.
 cBranch :: CPattern -> CExpr -> (CPattern, CRhs)
