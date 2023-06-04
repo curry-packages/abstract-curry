@@ -186,6 +186,10 @@ tupleExpr es | l==0 = constF (pre "()")
                                   es
  where l = length es
 
+--- Constructs an if-then-else expression.
+ifThenElseExp :: CExpr -> CExpr -> CExpr -> CExpr
+ifThenElseExp bexp texp eexp = applyF (pre "if_then_else") [bexp, texp, eexp]
+
 --- Constructs a let declaration (with possibly empty local delcarations).
 letExpr :: [CLocalDecl] -> CExpr -> CExpr
 letExpr locals cexp = if null locals then cexp else CLetDecl locals cexp
