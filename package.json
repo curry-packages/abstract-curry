@@ -19,7 +19,7 @@
                          "AbstractCurry.Pretty", "AbstractCurry.Select",
                          "AbstractCurry.Transform", "AbstractCurry.Types" ],
     "source": {
-        "git": "https://git.ps.informatik.uni-kiel.de/curry-packages/abstract-curry.git",
+        "git": "https://github.com/curry-packages/abstract-curry.git",
         "tag": "$version"
     },
     "testsuite": {
