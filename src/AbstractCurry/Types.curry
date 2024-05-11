@@ -66,15 +66,23 @@ data CDefaultDecl = CDefaultDecl [CTypeExpr]
 ---
 --- A type class definition of the form
 ---
----     class cx => c a where { ...;f :: t;... }
+---     class cx => c a1 ... an | ..., lhsAs -> rhsAs, ... where { ...;f :: t;... }
 ---
+--- , where each 'lhsAs' and 'rhsAs' is a selection of the variables 'a1 ... an'
+--- and 'lhsAs -> rhsAs' is a functional dependency,
 --- is represented by the Curry term
 ---
----     (CClass c v cx tv [...(CFunc f ar v t [...,CRule r,...])...])
+---     (CClass c v cx tvs funDeps [...(CFunc f ar v t [...,CRule r,...])...])
 ---
---- where 'tv' is the index of the type variable 'a' and 'v' is the
---- visibility of the type class resp. method.
---- Note: The type variable indices are unique inside each class
+--- where 'tvs' is the list of indices of the type variables 'a1' to 'an',
+--- 'funDeps' is a list of the form '[...,(lhsTvs,rhsTvs),...]', with 'lhsTvs'
+--- and 'rhsTvs' being lists of indices in 'tvs' representing 'lhsAs' and 'rhsAs'
+--- respectively, and 'v' is the visibility of the type class resp. method.
+--- Note: Type class declarations with none or more than one type variable are
+---       only allowed with the 'MultiParamTypeClasses' language extension.
+---       Functional dependencies are only allowed with the
+---       'FunctionalDependencies' language extension.
+---       The type variable indices are unique inside each class
 ---       declaration and are usually numbered from 0.
 ---       The methods' types share the type class' type variable index
 ---       as the class variable has to occur in a method's type signature.
@@ -83,24 +91,26 @@ data CDefaultDecl = CDefaultDecl [CTypeExpr]
 ---       determined by a given default implementation or 0.
 ---       Regardless of whether typed or untyped abstract curry is generated,
 ---       the methods' declarations are always typed.
-data CClassDecl = CClass QName CVisibility CContext CTVarIName [CFuncDecl]
+data CClassDecl = CClass QName CVisibility CContext [CTVarIName] [CFunDep] [CFuncDecl]
   deriving (Eq, Show)
 
 --- Data type for representing instance declarations.
 ---
 --- An instance definition of the form
 ---
----     instance cx => c ty where { ...;fundecl;... }
+---     instance cx => c ty1 ... tyn where { ...;fundecl;... }
 ---
 --- is represented by the Curry term
 ---
----     (CInstance c cx ty [...fundecl...])
+---     (CInstance c cx [ty1, ..., tyn] [...fundecl...])
 ---
---- Note: The type variable indices are unique inside each instance
+--- Note: Instance declarations with none or more than one instance type are 
+---       only allowed with the 'MultiParamTypeClasses' language extension.
+---       The type variable indices are unique inside each instance
 ---       declaration and are usually numbered from 0.
 ---       The methods' types use the instance's type variable indices
 ---       (if typed abstract curry is generated).
-data CInstanceDecl = CInstance QName CContext CTypeExpr [CFuncDecl]
+data CInstanceDecl = CInstance QName CContext [CTypeExpr] [CFuncDecl]
   deriving (Eq, Show)
 
 --- Data type for representing definitions of algebraic data types
@@ -155,6 +165,9 @@ type CConstraint = (QName, CTypeExpr)
 --- Context.
 data CContext = CContext [CConstraint]
   deriving (Eq, Show)
+
+--- The type for representing a functional dependency of a type class.
+type CFunDep = ([CTVarIName], [CTVarIName])
 
 --- Type expression.
 --- A type expression is either a type variable, a function type,
