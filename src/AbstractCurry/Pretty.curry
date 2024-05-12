@@ -297,16 +297,28 @@ ppCDefaultDecl opts (Just (CDefaultDecl texps)) =
 
 --- Pretty-print a class declaration.
 ppCClassDecl :: Options -> CClassDecl -> Doc
-ppCClassDecl opts (CClass qn _ ctxt tvar funcs) =
-  hsep [ text "class", ppCContext opts ctxt, ppType qn, ppCTVarIName opts tvar
-       , text "where"]
+ppCClassDecl opts (CClass qn _ ctxt tvs fdeps funcs) =
+  hsep ([ text "class", ppCContext opts ctxt, ppType qn] 
+    ++ map (ppCTVarIName opts) tvs
+    ++ [ppFdeps]
+    ++ [text "where"])
   <$!$> indent' opts (vsepBlankMap (ppCFuncClassDecl opts) funcs)
+ where
+  ppFdeps | null fdeps = empty
+          | otherwise  = text "|" <+> sep (punctuate comma (map (ppCFunDep opts) fdeps))
+
+-- Pretty-print a functional dependency.
+ppCFunDep :: Options -> CFunDep -> Doc
+ppCFunDep opts (l, r) = sep (map (ppCTVarIName opts) l)
+                    <+> rarrow
+                    <+> sep (map (ppCTVarIName opts) r)
 
 --- Pretty-print an instance declaration.
 ppCInstanceDecl :: Options -> CInstanceDecl -> Doc
-ppCInstanceDecl opts (CInstance qn ctxt texp funcs) =
-  hsep [ text "instance", ppCContext opts ctxt
-       , ppQType opts qn, ppCTypeExpr' 2 opts texp, text "where"]
+ppCInstanceDecl opts (CInstance qn ctxt tes funcs) =
+  hsep ([ text "instance", ppCContext opts ctxt, ppQType opts qn] 
+    ++ map (ppCTypeExpr' 2 opts) tes 
+    ++ [text "where"])
   <$!$> indent' opts (vsepBlankMap (ppCFuncDeclWithoutSig opts) funcs)
 
 --- Pretty-print type declarations, like `data ... = ...`, `type ... = ...` or
@@ -577,7 +589,7 @@ ppCRhs d opts rhs = case rhs of
 --- the function 'ppCRule' uses this to prevent local declarations from being
 --- further indented.
 ppFuncRhs :: Options -> CRhs -> Doc
-{- No further enrichment of options necessary -- it was done in 'ppCRule' -}
+{- No further enrichment of options necessary - it was done in 'ppCRule' -}
 ppFuncRhs opts (CSimpleRhs  exp _)   = ppCExpr opts exp
 ppFuncRhs opts (CGuardedRhs conds _) = ppCGuardedRhs opts equals conds
 
