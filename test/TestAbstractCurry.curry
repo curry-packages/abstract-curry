@@ -50,5 +50,8 @@ readAbstractCurryStrict mod = do
 testAbstractCurryPretty_rev =
   (readAndTestEqualFcy "Rev") `returns` True
 
+--testAbstractCurryPretty_mptc =
+--  (readAndTestEqualFcy "MPTC") `returns` True
+
 --testAbstractCurryPretty_TestAbstractCurry =
 --  (readAndTestEqualFcy "TestAbstractCurry") `returns` True
