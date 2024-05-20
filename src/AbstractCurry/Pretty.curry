@@ -70,7 +70,7 @@ data Options = Options
     , indentationWidth  :: Int
     , qualification     :: Qualification
     , moduleName        :: String
-    {- Debugging flag (show signature of local functions or not). -}
+    {- Show signature of local functions or not. -}
     , showLocalSigs     :: Bool
     , layoutChoice      :: LayoutChoice
     {- A collection of all to this module visible types (i.e. all imported
@@ -90,10 +90,11 @@ data Options = Options
 --- The default options to pretty print a module. These are:
 --- * page width: 78 characters
 --- * indentation width: 2 characters
+--- * show local signatures: False
 --- * qualification method: qualify all imported names (except prelude names)
 --- * layout choice: prefer nested layout (see 'LayoutChoice')
 --- These options can be changed by corresponding setters
---- ('setPageWith', 'setIndentWith', `set...Qualification`, 'setLayoutChoice').
+--- ('setPageWith', 'setIndentWith', `setShowLocalSigs`, `set...Qualification`, 'setLayoutChoice').
 ---
 --- Note: If these default options are used for pretty-print operations
 --- other than 'prettyCurryProg' or 'ppCurryProg', then one has to set
@@ -118,10 +119,10 @@ setPageWith pw o = o { pageWidth = pw }
 setIndentWith :: Int -> Options -> Options
 setIndentWith iw o = o { indentationWidth = iw }
 
---- Whether or not signatures of local functions should be shown.
---- In some instances, it might be necessary to specify the signature 
+--- Whether or not type signatures of local functions should be shown.
+--- In some instances, it might be necessary to show the signature 
 --- of a local function, e.g., if the function's type cannot be inferred.
-setShowLocalSigs :: Int -> Options -> Options
+setShowLocalSigs :: Bool -> Options -> Options
 setShowLocalSigs ls o = o { showLocalSigs = ls }
 
 --- Sets the qualification method to be used to print identifiers to
