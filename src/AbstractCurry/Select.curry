@@ -69,20 +69,20 @@ publicTypeNames = map typeName . filter ((== Public) . typeVis) . types
 
 --- Returns true if the given type class declaration has more than one
 --- type variable.
-isMultiParamTypeClass :: CTypeClass -> Bool
-isMultiParamTypeClass (CClassDecl _ _ ts _) = length ts > 1
+isMultiParamTypeClass :: CClassDecl -> Bool
+isMultiParamTypeClass (CClass _ _ _ ts _ _) = length ts > 1
 
 --- Returns true if the given type class declaration has functional
 --- dependencies.
-hasFunDeps :: CTypeClass -> Bool
-hasFunDeps (CClassDecl _ _ _ fds) = not (null fds)
+hasFunDeps :: CClassDecl -> Bool
+hasFunDeps (CClass _ _ _ _ fds _) = not (null fds)
 
 --- Returns the type class declarations of a given Curry program.
-typeClasses :: CurryProg -> [CTypeClass]
+typeClasses :: CurryProg -> [CClassDecl]
 typeClasses (CurryProg _ _ _ tcs _ _ _ _) = tcs
 
 --- Returns the instance declarations of a given Curry program.
-instances :: CurryProg -> [CInstance]
+instances :: CurryProg -> [CInstanceDecl]
 instances (CurryProg _ _ _ _ is _ _ _) = is
 
 ------------------------------------------------------------------------
