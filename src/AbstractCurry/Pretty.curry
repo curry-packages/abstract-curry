@@ -11,7 +11,8 @@ module AbstractCurry.Pretty
     ( Qualification, Options, LayoutChoice(..)
 
     , defaultOptions
-    , setPageWith, setIndentWith
+    , setPageWith, setIndentWith 
+    , setShowLocalSigs
     , setNoQualification, setFullQualification, setImportQualification
     , setOnDemandQualification
     , setModName, setLayoutChoice
@@ -116,6 +117,12 @@ setPageWith pw o = o { pageWidth = pw }
 --- Sets the indentation width of the pretty printer options.
 setIndentWith :: Int -> Options -> Options
 setIndentWith iw o = o { indentationWidth = iw }
+
+--- Whether or not signatures of local functions should be shown.
+--- In some instances, it might be necessary to specify the signature 
+--- of a local function, e.g., if the function's type cannot be inferred.
+setShowLocalSigs :: Int -> Options -> Options
+setShowLocalSigs ls o = o { showLocalSigs = ls }
 
 --- Sets the qualification method to be used to print identifiers to
 --- "import qualification" (which is the default).
