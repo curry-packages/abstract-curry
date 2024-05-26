@@ -219,8 +219,9 @@ prettyCurryProg opts cprog = showWidth (pageWidth opts) $ ppCurryProg opts cprog
 --- This is necessary to avoid errors w.r.t. names re-exported by modules.
 ppCurryProg :: Options -> CurryProg -> Doc
 ppCurryProg opts cprog@(CurryProg m ms dfltdecl clsdecls instdecls ts fs os) =
-  vsepBlank
-    [ (nest' opts' $ sep [ text "module" <+> ppMName m, ppExports opts' ts fs])
+  vsepBlank 
+    [ langExtensions 
+    , (nest' opts' $ sep [ text "module" <+> ppMName m, ppExports opts' ts fs])
        </> where_
     , ppImports opts' allImports
     , vcatMap (ppCOpDecl opts') os
@@ -230,13 +231,20 @@ ppCurryProg opts cprog@(CurryProg m ms dfltdecl clsdecls instdecls ts fs os) =
     , vsepBlankMap (ppCTypeDecl opts') ts
     , vsepBlankMap (ppCFuncDecl opts') fs ]
  where
-   opts' = opts { moduleName = m }
-   allModNames = filter (not . null)
-                   (union (nub (map fst (typesOfCurryProg cprog)))
-                          (nub (map fst (funcsOfCurryProg cprog))))
-   allImports = if qualification opts == None
-                then ms
-                else nub (ms ++ allModNames) \\ [m]
+  opts' = opts { moduleName = m }
+  allModNames = filter (not . null)
+                  (union (nub (map fst (typesOfCurryProg cprog)))
+                         (nub (map fst (funcsOfCurryProg cprog))))
+  allImports = if qualification opts == None
+                  then ms
+                  else nub (ms ++ allModNames) \\ [m]
+  langExtensions = vsep $ langMPTC ++ langFunDeps
+  langFunDeps = if any hasFunDeps clsdecls
+                   then [text "{-# LANGUAGE FunctionalDependencies #-}"]
+                   else []
+  langMPTC = if any isMultiParamTypeClass clsdecls
+                then [text "{-# LANGUAGE MultiParamTypeClasses #-}"]
+                else []
 
 --- Pretty-print a module name (just a string).
 ppMName :: MName -> Doc
@@ -283,8 +291,8 @@ ppImports opts imps = vcatMap (\m -> text importmode <+> ppMName m)
                            (filter (/= "Prelude") imps)
  where
    importmode = if qualification opts `elem` [Imports,Full]
-                then "import qualified"
-                else "import"
+                   then "import qualified"
+                   else "import"
 
 --- Pretty-print operator precedence declarations.
 ppCOpDecl :: Options -> COpDecl -> Doc
