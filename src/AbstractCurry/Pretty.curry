@@ -4,7 +4,7 @@
 --- This library provides a pretty-printer for AbstractCurry modules.
 ---
 --- @author  Yannik Potdevin (with changes by Michael Hanus)
---- @version June 2018
+--- @version May 2024
 --- --------------------------------------------------------------------------
 
 module AbstractCurry.Pretty
@@ -13,7 +13,7 @@ module AbstractCurry.Pretty
     , defaultOptions
     , setPageWith, setIndentWith
     , setNoQualification, setFullQualification, setImportQualification
-    , setOnDemandQualification
+    , setOnDemandQualification, setShowLocalSigs
     , setModName, setLayoutChoice
 
     , showCProg, prettyCurryProg, ppCurryProg
@@ -69,7 +69,7 @@ data Options = Options
     , indentationWidth  :: Int
     , qualification     :: Qualification
     , moduleName        :: String
-    {- Debugging flag (show signature of local functions or not). -}
+    {- show signature of local functions or not -}
     , showLocalSigs     :: Bool
     , layoutChoice      :: LayoutChoice
     {- A collection of all to this module visible types (i.e. all imported
@@ -161,6 +161,10 @@ setModName m o = o { moduleName = m }
 --- Sets the preferred layout in the pretty printer options.
 setLayoutChoice :: LayoutChoice -> Options -> Options
 setLayoutChoice lc o = o { layoutChoice = lc }
+
+--- Sets the flag whether local function signatures should be shown or not.
+setShowLocalSigs :: Bool -> Options -> Options
+setShowLocalSigs b o = o { showLocalSigs = b }
 
 --- Sets the related modules in the pretty printer options. See 'options' to
 --- read a specification of "related modules".
@@ -272,11 +276,11 @@ ppConsExports opts cDecls
 --- then the imports are declared as `qualified`.
 ppImports :: Options -> [MName] -> Doc
 ppImports opts imps = vcatMap (\m -> text importmode <+> ppMName m)
-                           (filter (/= "Prelude") imps)
+                              (filter (/= "Prelude") imps)
  where
-   importmode = if qualification opts `elem` [Imports,Full]
-                then "import qualified"
-                else "import"
+  importmode = if qualification opts `elem` [Imports,Full]
+                 then "import qualified"
+                 else "import"
 
 --- Pretty-print operator precedence declarations.
 ppCOpDecl :: Options -> COpDecl -> Doc
