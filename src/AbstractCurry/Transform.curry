@@ -499,7 +499,7 @@ updQNamesInCConsDecl f =
 updQNamesInCContext :: Update CContext QName
 updQNamesInCContext f = updCContext (map updConstr)
  where
-  updConstr (n,texp) = (f n, updQNamesInCTypeExpr f texp)
+  updConstr (n,ts) = (f n, map (updQNamesInCTypeExpr f) ts)
 
 --- Updates all qualified names in a record field declaration.
 updQNamesInCFieldDecl :: Update CFieldDecl QName
@@ -614,7 +614,7 @@ typesOfFieldDecl :: CFieldDecl -> [QName]
 typesOfFieldDecl = trCFieldDecl (\_ _ texp -> typesOfTypeExpr texp)
 
 typesOfContext :: CContext -> [QName]
-typesOfContext = trCContext (concatMap (typesOfTypeExpr . snd))
+typesOfContext = trCContext (concatMap (concatMap typesOfTypeExpr . snd))
 
 typesOfTypeExpr :: CTypeExpr -> [QName]
 typesOfTypeExpr = trCTypeExpr (\_ -> [])

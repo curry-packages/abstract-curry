@@ -431,8 +431,8 @@ ppCContext opts (CContext ctxt@(_:_:_)) =
 
 --- Pretty-print a single class constraint.
 ppCConstraint :: Options -> CConstraint -> Doc
-ppCConstraint opts (cn,texp) =
-  ppQType opts cn <+> ppCTypeExpr' prefAppPrec opts texp
+ppCConstraint opts (cn,ts) =
+  hsep $ ppQType opts cn : (map (ppCTypeExpr' prefAppPrec opts) ts)
 
 --- Pretty-print a type expression.
 ppCTypeExpr :: Options -> CTypeExpr -> Doc

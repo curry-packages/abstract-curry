@@ -160,7 +160,7 @@ data CFieldDecl = CField QName CVisibility CTypeExpr
   deriving (Eq, Show)
 
 --- Class constraint.
-type CConstraint = (QName, CTypeExpr)
+type CConstraint = (QName, [CTypeExpr])
 
 --- Context.
 data CContext = CContext [CConstraint]
