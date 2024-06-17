@@ -4,17 +4,16 @@
 --- This library provides a pretty-printer for AbstractCurry modules.
 ---
 --- @author  Yannik Potdevin (with changes by Michael Hanus)
---- @version June 2018
+--- @version May 2024
 --- --------------------------------------------------------------------------
 
 module AbstractCurry.Pretty
     ( Qualification, Options, LayoutChoice(..)
 
     , defaultOptions
-    , setPageWith, setIndentWith 
-    , setShowLocalSigs
+    , setPageWith, setIndentWith
     , setNoQualification, setFullQualification, setImportQualification
-    , setOnDemandQualification
+    , setOnDemandQualification, setShowLocalSigs
     , setModName, setLayoutChoice
 
     , showCProg, prettyCurryProg, ppCurryProg
@@ -70,7 +69,7 @@ data Options = Options
     , indentationWidth  :: Int
     , qualification     :: Qualification
     , moduleName        :: String
-    {- Show signature of local functions or not. -}
+    {- show signature of local functions or not -}
     , showLocalSigs     :: Bool
     , layoutChoice      :: LayoutChoice
     {- A collection of all to this module visible types (i.e. all imported
@@ -288,11 +287,11 @@ ppConsExports opts cDecls
 --- then the imports are declared as `qualified`.
 ppImports :: Options -> [MName] -> Doc
 ppImports opts imps = vcatMap (\m -> text importmode <+> ppMName m)
-                           (filter (/= "Prelude") imps)
+                              (filter (/= "Prelude") imps)
  where
-   importmode = if qualification opts `elem` [Imports,Full]
-                   then "import qualified"
-                   else "import"
+  importmode = if qualification opts `elem` [Imports,Full]
+                 then "import qualified"
+                 else "import"
 
 --- Pretty-print operator precedence declarations.
 ppCOpDecl :: Options -> COpDecl -> Doc
