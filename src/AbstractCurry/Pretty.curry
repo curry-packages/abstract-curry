@@ -216,7 +216,8 @@ prettyCurryProg opts cprog = showWidth (pageWidth opts) $ ppCurryProg opts cprog
 ppCurryProg :: Options -> CurryProg -> Doc
 ppCurryProg opts cprog@(CurryProg m ms dfltdecl clsdecls instdecls ts fs os) =
   vsepBlank
-    [ (nest' opts' $ sep [ text "module" <+> ppMName m, ppExports opts' ts fs])
+    [ (nest' opts' $ sep [ text "module" <+> ppMName m,
+                           ppExports opts' clsdecls instdecls ts fs])
        </> where_
     , ppImports opts' allImports
     , vcatMap (ppCOpDecl opts') os
@@ -242,23 +243,24 @@ ppMName = text
 --- public.
 --- extract the type and function declarations which are public and gather their
 --- qualified names in a list.
-ppExports :: Options -> [CTypeDecl] -> [CFuncDecl] -> Doc
-ppExports opts ts fs
-    | null pubTs  && null pubFs  = parens empty -- nothing is exported
-    | null privTs && null privFs
-                  && null privCs = empty        -- everything is exported
-    | otherwise                  = filledTupledSpaced $ map tDeclToDoc pubTs
-                                                     ++ map fDeclToDoc pubFs
-    where (pubTs, privTs)  = partition isPublicTypeDecl ts
-          (pubFs, privFs)  = partition isPublicFuncDecl fs
-          privCs           = filter ((== Private) . consVis)
-                           . concatMap typeCons $ ts
-          isPublicTypeDecl = (== Public) . typeVis
-          isPublicFuncDecl = (== Public) . funcVis
-          tDeclToDoc       = on' (<>)
-                                 (ppQTypeParsIfInfix opts . typeName)
-                                 (ppConsExports opts . typeCons)
-          fDeclToDoc = ppQFuncParsIfInfix opts . funcName
+ppExports :: Options -> [CClassDecl] -> [CInstanceDecl] -> [CTypeDecl]
+          -> [CFuncDecl] -> Doc
+ppExports opts clsdecls instdecls ts fs
+    | null clsdecls && null instdecls && null pubTs  && null pubFs
+    = parens empty -- nothing is exported
+    | null privTs && null privFs && null privCs
+    = empty        -- everything is exported
+    | otherwise
+    = filledTupledSpaced $ map tDeclToDoc pubTs ++ map fDeclToDoc pubFs
+ where
+  (pubTs, privTs)  = partition isPublicTypeDecl ts
+  (pubFs, privFs)  = partition isPublicFuncDecl fs
+  privCs           = filter ((== Private) . consVis) . concatMap typeCons $ ts
+  isPublicTypeDecl = (== Public) . typeVis
+  isPublicFuncDecl = (== Public) . funcVis
+  tDeclToDoc       = on' (<>) (ppQTypeParsIfInfix opts . typeName)
+                              (ppConsExports opts . typeCons)
+  fDeclToDoc       = ppQFuncParsIfInfix opts . funcName
 
 -- internal use only
 ppConsExports :: Options -> [CConsDecl] -> Doc
