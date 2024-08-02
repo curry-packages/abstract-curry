@@ -214,10 +214,10 @@ prettyCurryProg opts cprog = showWidth (pageWidth opts) $ ppCurryProg opts cprog
 --- in the program if qualified pretty printing is used.
 --- This is necessary to avoid errors w.r.t. names re-exported by modules.
 ppCurryProg :: Options -> CurryProg -> Doc
-ppCurryProg opts cprog@(CurryProg m ms dfltdecl clsdecls instdecls ts fs os) =
+ppCurryProg opts cprog@(CurryProg m es ms dfltdecl clsdecls instdecls ts fs os) =
   vsepBlank
     [ (nest' opts' $ sep [ text "module" <+> ppMName m,
-                           ppExports opts' clsdecls instdecls ts fs])
+                           ppExports opts' es clsdecls instdecls ts fs])
        </> where_
     , ppImports opts' allImports
     , vcatMap (ppCOpDecl opts') os
@@ -239,19 +239,19 @@ ppCurryProg opts cprog@(CurryProg m ms dfltdecl clsdecls instdecls ts fs os) =
 ppMName :: MName -> Doc
 ppMName = text
 
---- Pretty-print exports, i.e. all type and function declarations which are
---- public.
+--- Pretty-print exports, i.e. all exported modules, along with type and function
+--- declarations which are public.
 --- extract the type and function declarations which are public and gather their
 --- qualified names in a list.
-ppExports :: Options -> [CClassDecl] -> [CInstanceDecl] -> [CTypeDecl]
+ppExports :: Options -> [MName] -> [CClassDecl] -> [CInstanceDecl] -> [CTypeDecl]
           -> [CFuncDecl] -> Doc
-ppExports opts clsdecls instdecls ts fs
-    | null clsdecls && null instdecls && null pubTs  && null pubFs
+ppExports opts ms clsdecls instdecls ts fs
+    | null ms && null clsdecls && null instdecls && null pubTs  && null pubFs
     = parens empty -- nothing is exported
-    | null privTs && null privFs && null privCs
-    = empty        -- everything is exported
+    | null ms && null privTs && null privFs && null privCs
+    = empty        -- all types/functions are exported, but no modules
     | otherwise
-    = filledTupledSpaced $ map tDeclToDoc pubTs ++ map fDeclToDoc pubFs
+    = filledTupledSpaced $ map modToDoc ms ++ map tDeclToDoc pubTs ++ map fDeclToDoc pubFs
  where
   (pubTs, privTs)  = partition isPublicTypeDecl ts
   (pubFs, privFs)  = partition isPublicFuncDecl fs
@@ -261,6 +261,7 @@ ppExports opts clsdecls instdecls ts fs
   tDeclToDoc       = on' (<>) (ppQTypeParsIfInfix opts . typeName)
                               (ppConsExports opts . typeCons)
   fDeclToDoc       = ppQFuncParsIfInfix opts . funcName
+  modToDoc         = (text "module" <+>) . ppMName
 
 -- internal use only
 ppConsExports :: Options -> [CConsDecl] -> Doc

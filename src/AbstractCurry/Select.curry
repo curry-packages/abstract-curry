@@ -34,15 +34,19 @@ import Data.List (union)
 
 -- Returns the name of a given Curry program.
 progName :: CurryProg -> String
-progName (CurryProg modname _ _ _ _ _ _ _) = modname
+progName (CurryProg modname _ _ _ _ _ _ _ _) = modname
+
+--- Returns the exports (module names) of a given Curry program.
+exports :: CurryProg -> [MName]
+exports (CurryProg _ ms _ _ _ _ _ _ _) = ms
 
 --- Returns the imports (module names) of a given Curry program.
 imports :: CurryProg -> [MName]
-imports (CurryProg _ ms _ _ _ _ _ _) = ms
+imports (CurryProg _ _ ms _ _ _ _ _ _) = ms
 
 --- Returns the function declarations of a given Curry program.
 functions :: CurryProg -> [CFuncDecl]
-functions (CurryProg _ _ _ _ _ _ fs _) = fs
+functions (CurryProg _ _ _ _ _ _ _ fs _) = fs
 
 --- Returns all constructors of given Curry program.
 constructors :: CurryProg -> [CConsDecl]
@@ -50,7 +54,7 @@ constructors = concatMap typeCons . types
 
 --- Returns the type declarations of a given Curry program.
 types :: CurryProg -> [CTypeDecl]
-types (CurryProg _ _ _ _ _ ts _ _) = ts
+types (CurryProg _ _ _ _ _ _ ts _ _) = ts
 
 --- Returns the names of all visible functions in given Curry program.
 publicFuncNames :: CurryProg -> [QName]

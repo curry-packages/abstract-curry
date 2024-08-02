@@ -18,7 +18,7 @@ infixr 9 ~>
 simpleCurryProg :: String -> [String] -> [CTypeDecl] -> [CFuncDecl] -> [COpDecl]
                 -> CurryProg
 simpleCurryProg name imps types funcs ops =
-  CurryProg name imps Nothing [] [] types funcs ops
+  CurryProg name [] imps Nothing [] [] types funcs ops
 
 ------------------------------------------------------------------------
 -- Goodies to construct type declarations
