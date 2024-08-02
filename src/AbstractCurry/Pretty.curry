@@ -712,6 +712,8 @@ ppCExpr' p opts (CDoExpr stms) =
                             funcNamesOfStat
                             stms
                             opts
+ppCExpr' _ opts (CList exps) =
+    brackets $ hsep $ punctuate (comma <> space) (ppCExpr opts <$> exps)
 ppCExpr' _ opts (CListComp exp stms) =
     brackets $ hsep [ ppCExpr expOpts exp, bar
                     , hsep $ punctuate (comma <> space)
