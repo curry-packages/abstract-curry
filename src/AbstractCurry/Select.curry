@@ -250,6 +250,7 @@ varsOfExp (CApply e1 e2)      = varsOfExp e1 ++ varsOfExp e2
 varsOfExp (CLambda pl le)     = concatMap varsOfPat pl ++ varsOfExp le
 varsOfExp (CLetDecl ld le)    = concatMap varsOfLDecl ld ++ varsOfExp le
 varsOfExp (CDoExpr sl)        = concatMap varsOfStat sl
+varsOfExp (CList es)          = concatMap varsOfExp es
 varsOfExp (CListComp le sl)   = varsOfExp le ++ concatMap varsOfStat sl
 varsOfExp (CCase _ ce bl)     =
   varsOfExp ce ++ concatMap (\ (p,rhs) -> varsOfPat p ++ varsOfRhs rhs) bl
