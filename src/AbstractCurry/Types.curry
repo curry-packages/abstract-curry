@@ -43,10 +43,11 @@ data CVisibility
 --- Data type for representing a Curry module in the intermediate form.
 --- A value of this data type has the form
 ---
----     (CurryProg modname imports dfltdecl clsdecls instdecls typedecls
+---     (CurryProg modname exports imports dfltdecl clsdecls instdecls typedecls
 ---                funcdecls opdecls)
 ---
 --- where modname: name of this module,
+---       exports: list of modules names that are exported,
 ---       imports: list of modules names that are imported,
 ---       dfltdecl: optional default declaration
 ---       clsdecls:  Class declarations
@@ -54,7 +55,7 @@ data CVisibility
 ---       typedecls: Type declarations
 ---       functions: Function declarations
 ---       opdecls: Operator precedence declarations
-data CurryProg = CurryProg MName [MName] (Maybe CDefaultDecl) [CClassDecl]
+data CurryProg = CurryProg MName [MName] [MName] (Maybe CDefaultDecl) [CClassDecl]
                            [CInstanceDecl] [CTypeDecl] [CFuncDecl] [COpDecl]
   deriving (Eq, Show)
 

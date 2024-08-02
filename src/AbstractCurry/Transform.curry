@@ -28,14 +28,15 @@ type Update a b = (b -> b) -> a -> a
 -- CurryProg
 
 --- Transforms an AbstractCurry program.
-trCProg :: (String -> [String] -> (Maybe CDefaultDecl) -> [CClassDecl]
+trCProg :: (String -> [String] -> [String] -> (Maybe CDefaultDecl) -> [CClassDecl]
         -> [CInstanceDecl] -> [CTypeDecl] -> [CFuncDecl] -> [COpDecl] -> a)
         -> CurryProg -> a
-trCProg prog (CurryProg name imps dfltdecl clsdecls instdecls types funcs ops) =
-  prog name imps dfltdecl clsdecls instdecls types funcs ops
+trCProg prog (CurryProg name exps imps dfltdecl clsdecls instdecls types funcs ops) =
+  prog name exps imps dfltdecl clsdecls instdecls types funcs ops
 
 --- Updates an AbstractCurry program.
 updCProg :: (String      -> String)      ->
+            ([String]    -> [String])    ->
             ([String]    -> [String])    ->
             (Maybe CDefaultDecl -> Maybe CDefaultDecl) ->
             ([CClassDecl] -> [CClassDecl]) ->
@@ -43,15 +44,15 @@ updCProg :: (String      -> String)      ->
             ([CTypeDecl] -> [CTypeDecl]) ->
             ([CFuncDecl] -> [CFuncDecl]) ->
             ([COpDecl]   -> [COpDecl])   -> CurryProg -> CurryProg
-updCProg fn fi fdft fcl fci ft ff fo = trCProg prog
+updCProg fn fe fi fdft fcl fci ft ff fo = trCProg prog
  where
-  prog name imps dfltdecl clsdecls instdecls types funcs ops =
-    CurryProg (fn name) (fi imps) (fdft dfltdecl) (fcl clsdecls) (fci instdecls)
+  prog name exps imps dfltdecl clsdecls instdecls types funcs ops =
+    CurryProg (fn name) (fe exps) (fi imps) (fdft dfltdecl) (fcl clsdecls) (fci instdecls)
               (ft types) (ff funcs) (fo ops)
 
 --- Updates the name of a Curry program.
 updCProgName :: Update CurryProg String
-updCProgName f = updCProg f id id id id id id id
+updCProgName f = updCProg f id id id id id id id id
 
 ----------------------------------------------------------------------------
 -- CDefaultDecl
@@ -448,6 +449,7 @@ renameCurryModule newname prog =
 updQNamesInCProg :: Update CurryProg QName
 updQNamesInCProg f =
   updCProg id
+           id
            id 
            (updQNamesInCDefaultDecl f)
            (map (updQNamesInCClassDecl f))
@@ -571,7 +573,7 @@ updQNamesInCExpr f =
 --- Extracts all type names occurring in a program.
 typesOfCurryProg :: CurryProg -> [QName]
 typesOfCurryProg =
-  trCProg (\_ _ dfts cls insts types funcs _ ->
+  trCProg (\_ _ _ dfts cls insts types funcs _ ->
               typesOfDefault dfts ++
               unionMap typesOfCClassDecl    cls   ++
               unionMap typesOfCInstanceDecl insts ++
@@ -638,7 +640,7 @@ unionMap f = foldr union [] . (map (nub . f))
 --- Extracts all function (and constructor) names occurring in a program.
 funcsOfCurryProg :: CurryProg -> [QName]
 funcsOfCurryProg =
-  trCProg (\_ _ _ cls insts types funcs _ ->
+  trCProg (\_ _ _ _ cls insts types funcs _ ->
               unionMap funcsOfCClassDecl    cls   ++
               unionMap funcsOfCInstanceDecl insts ++
               unionMap funcsOfCTypeDecl types ++
