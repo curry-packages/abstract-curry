@@ -507,7 +507,7 @@ ppCPattern = ppCPattern' tlPrec
 -- to be enclosed in parentheses.
 ppCPattern' :: Int -> Options -> CPattern -> Doc
 ppCPattern' _ opts (CPVar  pvar) = ppCVarIName opts pvar
-ppCPattern' _ opts (CPLit  lit ) = ppCLiteral opts lit
+ppCPattern' _ opts (CPLit  lit ) = parensIf (isNegativeLiteral lit) $ ppCLiteral opts lit
 ppCPattern' p opts pat@(CPComb qn ps)
     | null ps        = parsIfInfix qn qnDoc
     | isApp qn       = parensIf (p >= prefAppPrec)
@@ -650,7 +650,7 @@ ppCExpr = ppCExpr' tlPrec
 -- has to be enclosed in parentheses.
 ppCExpr' :: Int -> Options -> CExpr -> Doc
 ppCExpr' _ opts (CVar     pvar) = ppCVarIName opts pvar
-ppCExpr' _ opts (CLit     lit ) = ppCLiteral opts lit
+ppCExpr' _ opts (CLit     lit ) = parensIf (isNegativeLiteral lit) $ ppCLiteral opts lit
 ppCExpr' _ opts (CSymbol  qn  ) = ppQFuncParsIfInfix opts qn
 ppCExpr' p opts app@(CApply f exp)
     | isITE app
@@ -872,6 +872,13 @@ isConsCons (_, i) = i == ":"
 isTupleCons :: QName -> Bool
 isTupleCons (_, i) = i == mkTuple (length i)
   where mkTuple n = '(' : replicate (n - 2) ',' ++ ")"
+
+--- Check whether a literal is a negative number.
+isNegativeLiteral :: CLiteral -> Bool
+isNegativeLiteral lit = case lit of
+  CIntc   i -> i < 0
+  CFloatc f -> f < 0
+  _         -> False
 
 --- Check if given application tree represents an if then else construct.
 --- If so, return the condition, the "then expression" and the "else expression".
