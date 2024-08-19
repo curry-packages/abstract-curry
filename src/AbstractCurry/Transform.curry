@@ -390,13 +390,14 @@ trExpr :: (CVarIName -> a)
        -> ([CPattern] -> a -> a)
        -> ([CLocalDecl] -> a -> a)
        -> ([CStatement] -> a)
+       -> ([CExpr] -> a)
        -> (a -> [CStatement] -> a)
        -> (CCaseType -> a -> [(CPattern, CRhs)] -> a)
        -> (a -> CQualTypeExpr -> a)
        -> (QName -> [CField a] -> a)
        -> (a -> [CField a] -> a)
        -> CExpr -> a
-trExpr var lit sym app lam clet cdo lcomp cas typ rcon rupd exp = trE exp
+trExpr var lit sym app lam clet cdo list lcomp cas typ rcon rupd exp = trE exp
  where
   trE (CVar n) = var n
   trE (CLit l) = lit l
@@ -405,6 +406,7 @@ trExpr var lit sym app lam clet cdo lcomp cas typ rcon rupd exp = trE exp
   trE (CLambda pats e) = lam pats (trE e)
   trE (CLetDecl ls e) = clet ls (trE e)
   trE (CDoExpr stm) = cdo stm
+  trE (CList es) = list es
   trE (CListComp e stm) = lcomp (trE e) stm
   trE (CCase ct e branches) = cas ct (trE e) branches
   trE (CTyped e te) = typ (trE e) te
@@ -554,12 +556,13 @@ updQNamesInCStatement f =
 
 updQNamesInCExpr :: Update CExpr QName
 updQNamesInCExpr f =
-  trExpr CVar CLit (CSymbol . f) CApply lam ldecl doexp lcomp ccase ctyped
+  trExpr CVar CLit (CSymbol . f) CApply lam ldecl doexp list lcomp ccase ctyped
          reccon recupd
  where
   lam pats exp = CLambda (map (updQNamesInCPattern f) pats) exp
   ldecl locals exp = CLetDecl (map (updQNamesInCLocalDecl f) locals) exp
   doexp stms = CDoExpr (map (updQNamesInCStatement f) stms)
+  list exps = CList (map (updQNamesInCExpr f) exps)
   lcomp exp stms = CListComp exp (map (updQNamesInCStatement f) stms)
   ccase ct exp bs = CCase ct exp
     (map (\ (pat,rhs) -> (updQNamesInCPattern f pat, updQNamesInCRhs f rhs)) bs)
@@ -693,6 +696,7 @@ funcsOfExpr =
          (const id)
          (\ldecls e -> concatMap funcsOfLDecl ldecls ++ e)
          (concatMap funcsOfStat)
+         (\es -> concatMap funcsOfExpr es)
          (\e stats -> e ++ concatMap funcsOfStat stats)
          (\_ e brs -> e ++ concatMap (funcsOfCRhs . snd) brs)
          (\e _ -> e)
