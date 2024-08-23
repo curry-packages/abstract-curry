@@ -9,7 +9,7 @@
 --- extension .acy
 ---
 --- @author Michael Hanus, Bjoern Peemoeller, Finn Teegen
---- @version November 2020
+--- @version August 2024
 -- ---------------------------------------------------------------------------
 
 module AbstractCurry.Types where
@@ -20,7 +20,7 @@ module AbstractCurry.Types where
 
 --- Current version of AbstractCurry
 version :: String
-version = "AbstractCurry 3.0"
+version = "AbstractCurry 4.0"
 
 --- A module name.
 type MName = String
