@@ -8,7 +8,7 @@
 --- `renameCurryModule` to rename an AbstractCurry module.
 ---
 --- @author Michael Hanus
---- @version October 2016
+--- @version August 2024
 --- @category meta
 ----------------------------------------------------------------------------
 

@@ -4,7 +4,7 @@
 --- This library provides a pretty-printer for AbstractCurry modules.
 ---
 --- @author  Yannik Potdevin (with changes by Michael Hanus)
---- @version May 2024
+--- @version August 2024
 --- --------------------------------------------------------------------------
 
 module AbstractCurry.Pretty

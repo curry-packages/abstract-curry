@@ -2,7 +2,7 @@
 --- This library provides some useful operations to write programs
 --- that generate AbstractCurry programs in a more compact and readable way.
 ---
---- @version June 2023
+--- @version August 2024
 ------------------------------------------------------------------------
 
 module AbstractCurry.Build where
