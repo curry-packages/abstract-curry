@@ -3,7 +3,7 @@
 --- in AbstractCurry programs, i.e., it provides a collection of
 --- selector functions for AbstractCurry.
 ---
---- @version October 2016
+--- @version August 2024
 ------------------------------------------------------------------------
 
 module AbstractCurry.Select
