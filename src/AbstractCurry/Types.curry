@@ -20,7 +20,7 @@ module AbstractCurry.Types where
 
 --- Current version of AbstractCurry
 version :: String
-version = "AbstractCurry 4.0"
+version = "AbstractCurry 3.0"
 
 --- A module name.
 type MName = String
