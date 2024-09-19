@@ -2,7 +2,7 @@
 --- This library provides some useful operations to write programs
 --- that generate AbstractCurry programs in a more compact and readable way.
 ---
---- @version June 2023
+--- @version September 2024
 ------------------------------------------------------------------------
 
 module AbstractCurry.Build where
@@ -12,13 +12,23 @@ import AbstractCurry.Types
 infixr 9 ~>
 
 ------------------------------------------------------------------------
--- Goodies to construct type declarations
+-- Goodies to construct programs
 
 --- Constructs a simple `CurryProg` without type classes and instances.
 simpleCurryProg :: String -> [String] -> [CTypeDecl] -> [CFuncDecl] -> [COpDecl]
                 -> CurryProg
 simpleCurryProg name imps types funcs ops =
   CurryProg name imps Nothing [] [] types funcs ops
+
+------------------------------------------------------------------------
+-- Goodies to construct entities related to type classes
+
+--- Constructs a simple class instance for a given type and
+--- without a class constraint. Thus, the instance definition has the form
+---
+---     instance c ty where { ...;fundecl;... }
+simpleInstanceDecl :: QName -> CTypeExpr -> [CFuncDecl] -> CInstanceDecl
+simpleInstanceDecl qc te fdecls = CInstance qc (CContext []) te fdecls
 
 ------------------------------------------------------------------------
 -- Goodies to construct type declarations
@@ -97,6 +107,12 @@ dateType = baseType ("Time", "CalendarTime")
 --- A qualified type with empty class constraints.
 emptyClassType :: CTypeExpr -> CQualTypeExpr
 emptyClassType te = CQualType (CContext []) te
+
+--- A qualified type with a single class constraint.
+--- The arguments are the class name, the actual type parameter of the class,
+--- and the type expression constrained by the class constraint.
+singleClassType :: QName -> CTypeExpr -> CTypeExpr -> CQualTypeExpr
+singleClassType qc clsarg te = CQualType (CContext [(qc,clsarg)]) te
 
 ------------------------------------------------------------------------
 -- Goodies to construct function declarations
