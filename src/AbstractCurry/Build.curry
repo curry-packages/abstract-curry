@@ -114,6 +114,11 @@ emptyClassType te = CQualType (CContext []) te
 singleClassType :: QName -> CTypeExpr -> CTypeExpr -> CQualTypeExpr
 singleClassType qc clsarg te = CQualType (CContext [(qc,clsarg)]) te
 
+--- A class constraint with a single parameter.
+--- The arguments are the class name and the type parameter of the class.
+singleCConstraint :: QName -> CTypeExpr -> CConstraint
+singleCConstraint qc clsarg = (qc,clsarg)
+
 ------------------------------------------------------------------------
 -- Goodies to construct function declarations
 
