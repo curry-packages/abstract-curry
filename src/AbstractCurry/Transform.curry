@@ -8,7 +8,7 @@
 --- `renameCurryModule` to rename an AbstractCurry module.
 ---
 --- @author Michael Hanus
---- @version October 2016
+--- @version August 2024
 --- @category meta
 ----------------------------------------------------------------------------
 
@@ -82,42 +82,43 @@ updCContext fc = trCContext (\constrs -> CContext (fc constrs))
 
 --- Transforms a class declaration.
 trCClassDecl ::
-  (QName -> CVisibility -> CContext -> CTVarIName -> [CFuncDecl] -> a)
+  (QName -> CVisibility -> CContext -> [CTVarIName] -> [CFunDep] -> [CFuncDecl] -> a)
   -> CClassDecl -> a
-trCClassDecl cls (CClass name vis ctxt tvar funcs) =
-  cls name vis ctxt tvar funcs
+trCClassDecl cls (CClass name vis ctxt tvs fdeps funcs) =
+  cls name vis ctxt tvs fdeps funcs
 
---- Updates an AbstractCurry program.
-updCClassDecl :: (QName       -> QName)
-              -> (CVisibility -> CVisibility)
-              -> (CContext    -> CContext)
-              -> (CTVarIName  -> CTVarIName)
-              -> ([CFuncDecl] -> [CFuncDecl])
+--- Updates a class declaration.
+updCClassDecl :: (QName        -> QName)
+              -> (CVisibility  -> CVisibility)
+              -> (CContext     -> CContext)
+              -> ([CTVarIName] -> [CTVarIName])
+              -> ([CFunDep]    -> [CFunDep])
+              -> ([CFuncDecl]  -> [CFuncDecl])
               -> CClassDecl -> CClassDecl
-updCClassDecl fn fv fc ft ff = trCClassDecl cls
+updCClassDecl fn fv fc ft fd ff = trCClassDecl cls
  where
-  cls name vis ctxt tvar funcs =
-    CClass (fn name) (fv vis) (fc ctxt) (ft tvar) (ff funcs)
+  cls name vis ctxt tvs fdeps funcs =
+    CClass (fn name) (fv vis) (fc ctxt) (ft tvs) (fd fdeps) (ff funcs)
 
 ----------------------------------------------------------------------------
 -- CInstanceDecl
 
 --- Transforms a class declaration.
-trCInstanceDecl :: (QName -> CContext -> CTypeExpr -> [CFuncDecl] -> a)
+trCInstanceDecl :: (QName -> CContext -> [CTypeExpr] -> [CFuncDecl] -> a)
                 -> CInstanceDecl -> a
-trCInstanceDecl inst (CInstance name ctxt texp funcs) =
-  inst name ctxt texp funcs
+trCInstanceDecl inst (CInstance name ctxt tes funcs) =
+  inst name ctxt tes funcs
 
 --- Updates an AbstractCurry program.
 updCInstanceDecl :: (QName       -> QName)
                  -> (CContext    -> CContext)
-                 -> (CTypeExpr   -> CTypeExpr)
+                 -> ([CTypeExpr]   -> [CTypeExpr])
                  -> ([CFuncDecl] -> [CFuncDecl])
                  -> CInstanceDecl -> CInstanceDecl
 updCInstanceDecl fn fc ft ff = trCInstanceDecl inst
  where
-  inst name ctxt texp funcs =
-    CInstance (fn name) (fc ctxt) (ft texp) (ff funcs)
+  inst name ctxt tes funcs =
+    CInstance (fn name) (fc ctxt) (ft tes) (ff funcs)
 
 ----------------------------------------------------------------------------
 -- CTypeDecl
@@ -467,7 +468,7 @@ updQNamesInCDefaultDecl f = updateDefltDecl
 --- Updates all qualified names in a class declaration.
 updQNamesInCClassDecl :: Update CClassDecl QName
 updQNamesInCClassDecl f =
-  updCClassDecl f id (updQNamesInCContext f) id
+  updCClassDecl f id (updQNamesInCContext f) id id
                 (map (updQNamesInCFuncDecl f))
 
 --- Updates all qualified names in an instance declaration.
@@ -475,7 +476,7 @@ updQNamesInCInstanceDecl :: Update CInstanceDecl QName
 updQNamesInCInstanceDecl f =
   updCInstanceDecl f
                    (updQNamesInCContext f)
-                   (updQNamesInCTypeExpr f)
+                   (map (updQNamesInCTypeExpr f))
                    (map (updQNamesInCFuncDecl f))
 
 --- Updates all qualified names in a type declaration.
@@ -498,7 +499,7 @@ updQNamesInCConsDecl f =
 updQNamesInCContext :: Update CContext QName
 updQNamesInCContext f = updCContext (map updConstr)
  where
-  updConstr (n,texp) = (f n, updQNamesInCTypeExpr f texp)
+  updConstr (n,ts) = (f n, map (updQNamesInCTypeExpr f) ts)
 
 --- Updates all qualified names in a record field declaration.
 updQNamesInCFieldDecl :: Update CFieldDecl QName
@@ -585,15 +586,15 @@ typesOfCurryProg =
 --- Class names are ignored.
 typesOfCClassDecl :: CClassDecl -> [QName]
 typesOfCClassDecl =
-  trCClassDecl (\_ _ ctxt _ funcs -> typesOfContext ctxt ++
+  trCClassDecl (\_ _ ctxt _ _ funcs -> typesOfContext ctxt ++
                      unionMap typesOfCFuncDecl funcs)
 
 --- Extracts all type names occurring in a class declaration.
 --- Class names are ignored.
 typesOfCInstanceDecl :: CInstanceDecl -> [QName]
 typesOfCInstanceDecl =
-  trCInstanceDecl (\_ ctxt texp funcs -> typesOfContext ctxt ++
-                     typesOfTypeExpr texp ++
+  trCInstanceDecl (\_ ctxt tes funcs -> typesOfContext ctxt ++
+                     concatMap typesOfTypeExpr tes ++
                      unionMap typesOfCFuncDecl funcs)
 
 --- Extracts all type names occurring in a type declaration.
@@ -613,7 +614,7 @@ typesOfFieldDecl :: CFieldDecl -> [QName]
 typesOfFieldDecl = trCFieldDecl (\_ _ texp -> typesOfTypeExpr texp)
 
 typesOfContext :: CContext -> [QName]
-typesOfContext = trCContext (concatMap (typesOfTypeExpr . snd))
+typesOfContext = trCContext (concatMap (concatMap typesOfTypeExpr . snd))
 
 typesOfTypeExpr :: CTypeExpr -> [QName]
 typesOfTypeExpr = trCTypeExpr (\_ -> [])
@@ -646,7 +647,7 @@ funcsOfCurryProg =
 
 funcsOfCClassDecl :: CClassDecl -> [QName]
 funcsOfCClassDecl =
-  trCClassDecl (\_ _ _ _ funcs -> unionMap funcsOfCFuncDecl funcs)
+  trCClassDecl (\_ _ _ _ _ funcs -> unionMap funcsOfCFuncDecl funcs)
 
 funcsOfCInstanceDecl :: CInstanceDecl -> [QName]
 funcsOfCInstanceDecl =

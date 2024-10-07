@@ -28,7 +28,7 @@ simpleCurryProg name imps types funcs ops =
 ---
 ---     instance c ty where { ...;fundecl;... }
 simpleInstanceDecl :: QName -> CTypeExpr -> [CFuncDecl] -> CInstanceDecl
-simpleInstanceDecl qc te fdecls = CInstance qc (CContext []) te fdecls
+simpleInstanceDecl qc te fdecls = CInstance qc (CContext []) [te] fdecls
 
 ------------------------------------------------------------------------
 -- Goodies to construct type declarations
@@ -112,12 +112,12 @@ emptyClassType te = CQualType (CContext []) te
 --- The arguments are the class name, the actual type parameter of the class,
 --- and the type expression constrained by the class constraint.
 singleClassType :: QName -> CTypeExpr -> CTypeExpr -> CQualTypeExpr
-singleClassType qc clsarg te = CQualType (CContext [(qc,clsarg)]) te
+singleClassType qc clsarg te = CQualType (CContext [(qc,[clsarg])]) te
 
 --- A class constraint with a single parameter.
 --- The arguments are the class name and the type parameter of the class.
 singleCConstraint :: QName -> CTypeExpr -> CConstraint
-singleCConstraint qc clsarg = (qc,clsarg)
+singleCConstraint qc clsarg = (qc,[clsarg])
 
 ------------------------------------------------------------------------
 -- Goodies to construct function declarations

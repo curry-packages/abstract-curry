@@ -4,7 +4,7 @@
 --- This library provides a pretty-printer for AbstractCurry modules.
 ---
 --- @author  Yannik Potdevin (with changes by Michael Hanus)
---- @version May 2024
+--- @version August 2024
 --- --------------------------------------------------------------------------
 
 module AbstractCurry.Pretty
@@ -89,10 +89,11 @@ data Options = Options
 --- The default options to pretty print a module. These are:
 --- * page width: 78 characters
 --- * indentation width: 2 characters
+--- * show local signatures: False
 --- * qualification method: qualify all imported names (except prelude names)
 --- * layout choice: prefer nested layout (see 'LayoutChoice')
 --- These options can be changed by corresponding setters
---- ('setPageWith', 'setIndentWith', `set...Qualification`, 'setLayoutChoice').
+--- ('setPageWith', 'setIndentWith', `setShowLocalSigs`, `set...Qualification`, 'setLayoutChoice').
 ---
 --- Note: If these default options are used for pretty-print operations
 --- other than 'prettyCurryProg' or 'ppCurryProg', then one has to set
@@ -116,6 +117,12 @@ setPageWith pw o = o { pageWidth = pw }
 --- Sets the indentation width of the pretty printer options.
 setIndentWith :: Int -> Options -> Options
 setIndentWith iw o = o { indentationWidth = iw }
+
+--- Whether or not type signatures of local functions should be shown.
+--- In some instances, it might be necessary to show the signature 
+--- of a local function, e.g., if the function's type cannot be inferred.
+setShowLocalSigs :: Bool -> Options -> Options
+setShowLocalSigs ls o = o { showLocalSigs = ls }
 
 --- Sets the qualification method to be used to print identifiers to
 --- "import qualification" (which is the default).
@@ -161,10 +168,6 @@ setModName m o = o { moduleName = m }
 --- Sets the preferred layout in the pretty printer options.
 setLayoutChoice :: LayoutChoice -> Options -> Options
 setLayoutChoice lc o = o { layoutChoice = lc }
-
---- Sets the flag whether local function signatures should be shown or not.
-setShowLocalSigs :: Bool -> Options -> Options
-setShowLocalSigs b o = o { showLocalSigs = b }
 
 --- Sets the related modules in the pretty printer options. See 'options' to
 --- read a specification of "related modules".
@@ -216,7 +219,8 @@ prettyCurryProg opts cprog = showWidth (pageWidth opts) $ ppCurryProg opts cprog
 ppCurryProg :: Options -> CurryProg -> Doc
 ppCurryProg opts cprog@(CurryProg m ms dfltdecl clsdecls instdecls ts fs os) =
   vsepBlank
-    [ (nest' opts' $ sep [ text "module" <+> ppMName m,
+    [ langExtensions
+      , (nest' opts' $ sep [ text "module" <+> ppMName m,
                            ppExports opts' clsdecls instdecls ts fs])
        </> where_
     , ppImports opts' allImports
@@ -227,13 +231,20 @@ ppCurryProg opts cprog@(CurryProg m ms dfltdecl clsdecls instdecls ts fs os) =
     , vsepBlankMap (ppCTypeDecl opts') ts
     , vsepBlankMap (ppCFuncDecl opts') fs ]
  where
-   opts' = opts { moduleName = m }
-   allModNames = filter (not . null)
-                   (union (nub (map fst (typesOfCurryProg cprog)))
-                          (nub (map fst (funcsOfCurryProg cprog))))
-   allImports = if qualification opts == None
-                then ms
-                else nub (ms ++ allModNames) \\ [m]
+  opts' = opts { moduleName = m }
+  allModNames = filter (not . null)
+                  (union (nub (map fst (typesOfCurryProg cprog)))
+                         (nub (map fst (funcsOfCurryProg cprog))))
+  allImports = if qualification opts == None
+                  then ms
+                  else nub (ms ++ allModNames) \\ [m]
+  langExtensions = vsep $ langMPTC ++ langFunDeps
+  langFunDeps = if any hasFunDeps clsdecls
+                   then [text "{-# LANGUAGE FunctionalDependencies #-}"]
+                   else []
+  langMPTC = if any isMultiParamTypeClass clsdecls
+                then [text "{-# LANGUAGE MultiParamTypeClasses #-}"]
+                else []
 
 --- Pretty-print a module name (just a string).
 ppMName :: MName -> Doc
@@ -303,16 +314,28 @@ ppCDefaultDecl opts (Just (CDefaultDecl texps)) =
 
 --- Pretty-print a class declaration.
 ppCClassDecl :: Options -> CClassDecl -> Doc
-ppCClassDecl opts (CClass qn _ ctxt tvar funcs) =
-  hsep [ text "class", ppCContext opts ctxt, ppType qn, ppCTVarIName opts tvar
-       , text "where"]
+ppCClassDecl opts (CClass qn _ ctxt tvs fdeps funcs) =
+  hsep ([ text "class", ppCContext opts ctxt, ppType qn] 
+    ++ map (ppCTVarIName opts) tvs
+    ++ [ppFdeps]
+    ++ [text "where"])
   <$!$> indent' opts (vsepBlankMap (ppCFuncClassDecl opts) funcs)
+ where
+  ppFdeps | null fdeps = empty
+          | otherwise  = text "|" <+> sep (punctuate comma (map (ppCFunDep opts) fdeps))
+
+-- Pretty-print a functional dependency.
+ppCFunDep :: Options -> CFunDep -> Doc
+ppCFunDep opts (l, r) = sep (map (ppCTVarIName opts) l)
+                    <+> rarrow
+                    <+> sep (map (ppCTVarIName opts) r)
 
 --- Pretty-print an instance declaration.
 ppCInstanceDecl :: Options -> CInstanceDecl -> Doc
-ppCInstanceDecl opts (CInstance qn ctxt texp funcs) =
-  hsep [ text "instance", ppCContext opts ctxt
-       , ppQType opts qn, ppCTypeExpr' 2 opts texp, text "where"]
+ppCInstanceDecl opts (CInstance qn ctxt tes funcs) =
+  hsep ([ text "instance", ppCContext opts ctxt, ppQType opts qn] 
+    ++ map (ppCTypeExpr' 2 opts) tes 
+    ++ [text "where"])
   <$!$> indent' opts (vsepBlankMap (ppCFuncDeclWithoutSig opts) funcs)
 
 --- Pretty-print type declarations, like `data ... = ...`, `type ... = ...` or
@@ -409,8 +432,8 @@ ppCContext opts (CContext ctxt@(_:_:_)) =
 
 --- Pretty-print a single class constraint.
 ppCConstraint :: Options -> CConstraint -> Doc
-ppCConstraint opts (cn,texp) =
-  ppQType opts cn <+> ppCTypeExpr' prefAppPrec opts texp
+ppCConstraint opts (cn,ts) =
+  hsep $ ppQType opts cn : (map (ppCTypeExpr' prefAppPrec opts) ts)
 
 --- Pretty-print a type expression.
 ppCTypeExpr :: Options -> CTypeExpr -> Doc
@@ -583,7 +606,7 @@ ppCRhs d opts rhs = case rhs of
 --- the function 'ppCRule' uses this to prevent local declarations from being
 --- further indented.
 ppFuncRhs :: Options -> CRhs -> Doc
-{- No further enrichment of options necessary -- it was done in 'ppCRule' -}
+{- No further enrichment of options necessary - it was done in 'ppCRule' -}
 ppFuncRhs opts (CSimpleRhs  exp _)   = ppCExpr opts exp
 ppFuncRhs opts (CGuardedRhs conds _) = ppCGuardedRhs opts equals conds
 
