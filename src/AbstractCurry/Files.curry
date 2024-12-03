@@ -7,8 +7,9 @@
 --- extension `.acy` in the subdirectory `.curry`
 ---
 --- @author Michael Hanus, Bjoern Peemoeller, Jan Tikovsky, Finn Teegen
---- @version August 2024
+--- @version December 2024
 -- ---------------------------------------------------------------------------
+{-# LANGUAGE CPP #-}
 
 module AbstractCurry.Files where
 
@@ -19,7 +20,7 @@ import System.FilePath      ( takeFileName, (</>), (<.>) )
 import System.CurryPath     ( getLoadPathForModule, inCurrySubdir
                             , lookupModuleSourceInLoadPath, stripCurrySuffix )
 import System.FrontendExec
-import ReadShowTerm
+import ReadShowTerm         ( readsUnqualifiedTerm, showTerm )
 
 import AbstractCurry.Select ( imports )
 import AbstractCurry.Types
@@ -99,10 +100,10 @@ tryParse fn = do
         then cancel $ "Could not parse AbstractCurry file '" ++ fn
                    ++ "': incompatible versions"
         else
-          case readsUnqualifiedTerm ["AbstractCurry.Types","Prelude"] lines of
-            [(p,tl)]  | all isSpace tl -> return (Right p)
-            _ -> cancel $ "Could not parse AbstractCurry file '" ++ fn
-                          ++ "': no parse"
+          case readACYString lines of
+            Just p  -> return (Right p)
+            Nothing -> cancel $ "Could not parse AbstractCurry file '" ++
+                                fn ++ "': no parse"
  where cancel str = return (Left str)
 
 --- I/O action which parses a Curry program and returns the corresponding
@@ -196,7 +197,10 @@ readAbstractCurryFile filename = do
      filecontents <- readFile fname
      let (line1,lines) = break (=='\n') filecontents
      if line1 == "{- "++version++" -}"
-      then return (readUnqualifiedTerm ["AbstractCurry.Types","Prelude"] lines)
+      then case readACYString lines of
+             Just p  -> return p
+             Nothing -> error $ "Could not parse AbstractCurry file '" ++
+                                filename ++ "': no parse"
       else error $ "AbstractCurry: incompatible file found: "++fname
 
 --- Tries to read an AbstractCurry file and returns
@@ -213,26 +217,37 @@ tryReadACYFile fn = do
       exists' <- doesFileExist fn'
       if exists'
         then tryRead fn'
-        else cancel
+        else return Nothing
  where
   tryRead file = do
     src <- readFile file
     let (line1,lines) = break (=='\n') src
     if line1 /= "{- "++version++" -}"
       then error $ "AbstractCurry: incompatible file found: "++fn
-      else
-        case readsUnqualifiedTerm ["AbstractCurry.Types","Prelude"] lines of
-          []       -> cancel
-          [(p,tl)] -> if all isSpace tl
-                        then return $ Just p
-                        else cancel
-          _        -> cancel
-  cancel = return Nothing
+      else return $ readACYString lines
+
+readACYString :: String -> Maybe CurryProg
+readACYString s =
+  case
+#ifdef __KMCC__
+       reads s
+#else
+       readsUnqualifiedTerm ["AbstractCurry.Types","Prelude"] s
+#endif
+    of []       -> Nothing
+       [(p,tl)] -> if all isSpace tl then Just p
+                                     else Nothing
+       _        -> Nothing
 
 --- Writes an AbstractCurry program into a file in ".acy" format.
 --- The first argument must be the name of the target file
 --- (with suffix ".acy").
 writeAbstractCurryFile :: String -> CurryProg -> IO ()
-writeAbstractCurryFile file prog = writeFile file (showTerm prog)
+writeAbstractCurryFile file prog =
+#ifdef __KMCC__
+  writeFile file (show prog)
+#else
+  writeFile file (showTerm prog)
+#endif
 
 ------------------------------------------------------------------------------
