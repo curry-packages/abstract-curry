@@ -19,7 +19,7 @@
         "pakcs"   : ">= 3.8.0",
         "kics2"   : ">= 3.3.0",
         "curry2go": ">= 1.5.0",
-        "kmcc"    : ">= 1.0.0"
+        "kmcc"    : ">= 0.3.0"
     },
     "exportedModules": [ "AbstractCurry.Build", "AbstractCurry.Files",
                          "AbstractCurry.Pretty", "AbstractCurry.Select",
