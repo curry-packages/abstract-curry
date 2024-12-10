@@ -283,6 +283,7 @@ data CExpr
  | CLambda    [CPattern] CExpr                   -- lambda abstraction
  | CLetDecl   [CLocalDecl] CExpr                 -- local let declarations
  | CDoExpr    [CStatement]                       -- do expression
+ | CList      [CExpr]                            -- list
  | CListComp  CExpr [CStatement]                 -- list comprehension
  | CCase      CCaseType CExpr [(CPattern, CRhs)] -- case expression
  | CTyped     CExpr CQualTypeExpr                -- typed expression
