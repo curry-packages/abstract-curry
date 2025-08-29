@@ -7,7 +7,7 @@
 --- extension `.acy` in the subdirectory `.curry`
 ---
 --- @author Michael Hanus, Bjoern Peemoeller, Jan Tikovsky, Finn Teegen
---- @version December 2024
+--- @version August 2025
 -- ---------------------------------------------------------------------------
 {-# LANGUAGE CPP #-}
 
