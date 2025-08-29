@@ -14,6 +14,8 @@
 module AbstractCurry.Files where
 
 import Data.Char            ( isSpace )
+import System.IO            ( IOMode(..), hGetContents, openFile )
+
 import System.Directory     ( doesFileExist, getModificationTime
                             , findFileWithSuffix, getFileWithSuffix )
 import System.FilePath      ( takeFileName, (</>), (<.>) )
@@ -94,7 +96,7 @@ tryParse fn = do
   if not exists
     then cancel $ "AbstractCurry file '" ++ fn ++ "' does not exist"
     else do
-      src <- readFile fn
+      src <- readCompleteFile fn
       let (line1, lines) = break (=='\n') src
       if line1 /= "{- "++version++" -}"
         then cancel $ "Could not parse AbstractCurry file '" ++ fn
@@ -194,7 +196,7 @@ readAbstractCurryFile filename = do
                         "' does not exist")
  where
    readExistingACY fname = do
-     filecontents <- readFile fname
+     filecontents <- readCompleteFile fname
      let (line1,lines) = break (=='\n') filecontents
      if line1 == "{- "++version++" -}"
       then case readACYString lines of
@@ -220,7 +222,7 @@ tryReadACYFile fn = do
         else return Nothing
  where
   tryRead file = do
-    src <- readFile file
+    src <- readCompleteFile file
     let (line1,lines) = break (=='\n') src
     if line1 /= "{- "++version++" -}"
       then error $ "AbstractCurry: incompatible file found: "++fn
@@ -249,5 +251,8 @@ writeAbstractCurryFile file prog =
 #else
   writeFile file (showTerm prog)
 #endif
+
+readCompleteFile :: FilePath -> IO String
+readCompleteFile fn = openFile fn ReadMode >>= hGetContents
 
 ------------------------------------------------------------------------------
