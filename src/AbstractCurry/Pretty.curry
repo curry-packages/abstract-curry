@@ -1,11 +1,11 @@
---- --------------------------------------------------------------------------
+------------------------------------------------------------------------------
 --- Pretty-printing of AbstractCurry.
 ---
 --- This library provides a pretty-printer for AbstractCurry modules.
 ---
 --- @author  Yannik Potdevin (with changes by Michael Hanus)
 --- @version August 2024
---- --------------------------------------------------------------------------
+------------------------------------------------------------------------------
 
 module AbstractCurry.Pretty
     ( Qualification, Options, LayoutChoice(..)

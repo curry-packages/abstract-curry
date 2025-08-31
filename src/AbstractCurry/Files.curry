@@ -1,4 +1,4 @@
--- ---------------------------------------------------------------------------
+------------------------------------------------------------------------------
 --- This library defines various I/O actions to read Curry programs and
 --- transform them into the AbstractCurry representation and to write
 --- AbstractCurry files.
@@ -8,7 +8,7 @@
 ---
 --- @author Michael Hanus, Bjoern Peemoeller, Jan Tikovsky, Finn Teegen
 --- @version August 2025
--- ---------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 {-# LANGUAGE CPP #-}
 
 module AbstractCurry.Files
