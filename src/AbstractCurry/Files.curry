@@ -11,7 +11,13 @@
 -- ---------------------------------------------------------------------------
 {-# LANGUAGE CPP #-}
 
-module AbstractCurry.Files where
+module AbstractCurry.Files
+  ( readCurry, readCurryWithParseOptions, readCurryWithImports, tryReadCurryFile
+  , readUntypedCurry, readUntypedCurryWithParseOptions
+  , abstractCurryFileName, untypedAbstractCurryFileName
+  , readAbstractCurryFile, tryReadACYFile
+  , writeAbstractCurryFile )
+ where
 
 import Data.Char            ( isSpace )
 import System.IO            ( IOMode(..), hGetContents, openFile )
@@ -64,6 +70,8 @@ tryReadCurryWithImports modname = collect [] [modname]
           results <- collect (m:imported) (ms ++ is)
           return (either Left (Right . (prog :)) results)
 
+--- I/O action which tries to parse a Curry module and returns
+--- either an error message or the corresponding AbstractCurry program.
 tryReadCurryFile :: String -> IO (Either String CurryProg)
 tryReadCurryFile m = do
   mbSrc <- lookupModuleSourceInLoadPath m
@@ -183,7 +191,7 @@ untypedAbstractCurryFileName prog =
 --- file (with suffix ".acy") containing an AbstractCurry program in ".acy"
 --- format and the result is a Curry term representing this program.
 --- It is currently predefined only in Curry2Prolog.
-readAbstractCurryFile :: String -> IO CurryProg
+readAbstractCurryFile :: FilePath -> IO CurryProg
 readAbstractCurryFile filename = do
   exacy <- doesFileExist filename
   if exacy
