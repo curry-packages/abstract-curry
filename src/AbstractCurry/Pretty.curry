@@ -1,10 +1,10 @@
 ------------------------------------------------------------------------------
---- Pretty-printing of AbstractCurry.
----
---- This library provides a pretty-printer for AbstractCurry modules.
----
---- @author  Yannik Potdevin (with changes by Michael Hanus)
---- @version August 2024
+-- | Pretty-printing of AbstractCurry.
+--
+--   This library provides a pretty-printer for AbstractCurry modules.
+--
+--   Author : Yannik Potdevin (with changes by Michael Hanus)
+--   Version: September 2025
 ------------------------------------------------------------------------------
 
 module AbstractCurry.Pretty
@@ -48,21 +48,29 @@ data Qualification
     | None      -- ^ Do not qualify any function.
  deriving Eq
 
---- The choice for a generally preferred layout.
---- @cons PreferNestedLayout - prefer a layout where the arguments of
----                            long expressions are vertically aligned
---- @cons PreferFilledLayout - prefer a layout where the arguments of
----                            long expressions are filled as long as possible
----                            into one line
-data LayoutChoice = PreferNestedLayout  -- ^ Prefer
-                                        -- a                      f a
-                                        -- + b      respectively    b
-                                        --   + ...                  c
-                                        -- if an expression does not fit the page
-                  | PreferFilledLayout  -- ^ Prefer
-                                        -- a + b                  f a b
-                                        -- + c + d  respectively  c d
-                                        -- if an expression does not fit the page
+-- | The choice for a generally preferred layout.
+--   @cons PreferNestedLayout - prefer a layout where the arguments of
+--                              long expressions are vertically aligned
+--   @cons PreferFilledLayout - prefer a layout where the arguments of
+--                              long expressions are filled as long as possible
+--                              into one line
+data LayoutChoice
+  = PreferNestedLayout -- ^ Prefer a layout where the arguments of long
+                       --   expressions are vertically aligned, i.e., prefer
+                       --
+                       --       a                      f a
+                       --       + b      respectively    b
+                       --         + ...                  c
+                       --
+                       --   if an expression does not fit the page.
+  | PreferFilledLayout -- ^ Prefer a layout where the arguments of long
+                       --   expressions are filled as long as possible into
+                       --   one line, i.e., prefer
+                       --
+                       --       a + b                  f a b
+                       --       + c + d  respectively  c d
+                       --
+                       --   if an expression does not fit the page.
 
 data Options = Options
     { pageWidth         :: Int
@@ -86,18 +94,18 @@ data Options = Options
     , visibleVariables  :: Collection CVarIName
     }
 
---- The default options to pretty print a module. These are:
---- * page width: 78 characters
---- * indentation width: 2 characters
---- * show local signatures: False
---- * qualification method: qualify all imported names (except prelude names)
---- * layout choice: prefer nested layout (see 'LayoutChoice')
---- These options can be changed by corresponding setters
---- ('setPageWith', 'setIndentWith', `setShowLocalSigs`, `set...Qualification`, 'setLayoutChoice').
----
---- Note: If these default options are used for pretty-print operations
---- other than 'prettyCurryProg' or 'ppCurryProg', then one has to set
---- the current module name explicitly by 'setModName'!
+-- | The default options to pretty print a module. These are:
+--   * page width: 78 characters
+--   * indentation width: 2 characters
+--   * show local signatures: False
+--   * qualification method: qualify all imported names (except prelude names)
+--   * layout choice: prefer nested layout (see 'LayoutChoice')
+--   These options can be changed by corresponding setters
+--   ('setPageWith', 'setIndentWith', `setShowLocalSigs`, `set...Qualification`, 'setLayoutChoice').
+--
+--   Note: If these default options are used for pretty-print operations
+--   other than 'prettyCurryProg' or 'ppCurryProg', then one has to set
+--   the current module name explicitly by 'setModName'!
 defaultOptions :: Options
 defaultOptions =
   Options { pageWidth        = 78
@@ -110,67 +118,67 @@ defaultOptions =
           , visibleFunctions = emptyCol
           , visibleVariables = emptyCol }
 
---- Sets the page width of the pretty printer options.
+-- | Sets the page width of the pretty printer options.
 setPageWith :: Int -> Options -> Options
 setPageWith pw o = o { pageWidth = pw }
 
---- Sets the indentation width of the pretty printer options.
+-- | Sets the indentation width of the pretty printer options.
 setIndentWith :: Int -> Options -> Options
 setIndentWith iw o = o { indentationWidth = iw }
 
---- Whether or not type signatures of local functions should be shown.
---- In some instances, it might be necessary to show the signature 
---- of a local function, e.g., if the function's type cannot be inferred.
+-- | Whether or not type signatures of local functions should be shown.
+--   In some instances, it might be necessary to show the signature
+--   of a local function, e.g., if the function's type cannot be inferred.
 setShowLocalSigs :: Bool -> Options -> Options
 setShowLocalSigs ls o = o { showLocalSigs = ls }
 
---- Sets the qualification method to be used to print identifiers to
---- "import qualification" (which is the default).
---- In this case, all identifiers imported from other modules (except
---- for the identifiers of the prelude) are fully qualified.
+-- | Sets the qualification method to be used to print identifiers to
+--   "import qualification" (which is the default).
+--   In this case, all identifiers imported from other modules (except
+--   for the identifiers of the prelude) are fully qualified.
 setImportQualification :: Options -> Options
 setImportQualification o = o { qualification = Imports }
 
---- Sets the qualification method to be used to print identifiers to
---- "unqualified".
---- In this case, no identifiers is printed with its module qualifier.
---- This might lead to name conflicts or unintended references
---- if some identifiers in the pretty-printed module are in conflict
---- with imported identifiers.
+-- | Sets the qualification method to be used to print identifiers to
+--   "unqualified".
+--   In this case, no identifiers is printed with its module qualifier.
+--   This might lead to name conflicts or unintended references
+--   if some identifiers in the pretty-printed module are in conflict
+--   with imported identifiers.
 setNoQualification :: Options -> Options
 setNoQualification o = o { qualification = None }
 
---- Sets the qualification method to be used to print identifiers to
---- "fully qualified".
---- In this case, every identifiers, including those of the processed module
---- and the prelude, are fully qualified.
+-- | Sets the qualification method to be used to print identifiers to
+--   "fully qualified".
+--   In this case, every identifiers, including those of the processed module
+--   and the prelude, are fully qualified.
 setFullQualification :: Options -> Options
 setFullQualification o = o { qualification = Full }
 
---- Sets the qualification method to be used to print identifiers to
---- "qualification on demand".
---- In this case, an identifier is qualified only if it is necessary
---- to avoid a name conflict, e.g., if a local identifier has the same
---- names as an imported identifier. Since it is necessary to know
---- the names of all identifiers defined in the current module (to be pretty
---- printed) and imported from other modules, the first argument
---- is the list of modules consisting of the current module and
---- all imported modules (including the prelude).
---- The current module must always be the head of this list.
+-- | Sets the qualification method to be used to print identifiers to
+--   "qualification on demand".
+--   In this case, an identifier is qualified only if it is necessary
+--   to avoid a name conflict, e.g., if a local identifier has the same
+--   names as an imported identifier. Since it is necessary to know
+--   the names of all identifiers defined in the current module (to be pretty
+--   printed) and imported from other modules, the first argument
+--   is the list of modules consisting of the current module and
+--   all imported modules (including the prelude).
+--   The current module must always be the head of this list.
 setOnDemandQualification :: [CurryProg] -> Options -> Options
 setOnDemandQualification mods o =
   setRelatedMods mods (o { qualification = OnDemand })
 
---- Sets the name of the current module in the pretty printer options.
+-- | Sets the name of the current module in the pretty printer options.
 setModName :: MName -> Options -> Options
 setModName m o = o { moduleName = m }
 
---- Sets the preferred layout in the pretty printer options.
+-- | Sets the preferred layout in the pretty printer options.
 setLayoutChoice :: LayoutChoice -> Options -> Options
 setLayoutChoice lc o = o { layoutChoice = lc }
 
---- Sets the related modules in the pretty printer options. See 'options' to
---- read a specification of "related modules".
+-- | Sets the related modules in the pretty printer options. See 'options' to
+--   read a specification of "related modules".
 setRelatedMods :: [CurryProg] -> Options -> Options
 setRelatedMods [] o = o
 setRelatedMods (currentMod:imports) o =
@@ -183,39 +191,38 @@ setRelatedMods (currentMod:imports) o =
                                   , collect publicConsNames ]
           collect proj = foldr union [] $ map proj imports
 
---- precedence of top level (pattern or application) context -- lowest
+-- | precedence of top level (pattern or application) context -- lowest
 tlPrec      :: Int
 tlPrec      = 0
---- precedence of infix (pattern or application) context
+-- | precedence of infix (pattern or application) context
 infAppPrec  :: Int
 infAppPrec  = 1
---- precedence of standard prefix (pattern or application) context
+-- | precedence of standard prefix (pattern or application) context
 prefAppPrec :: Int
 prefAppPrec = 2
---- precedence of atoms (variables, literals, tuples, lists ...)
+-- | precedence of atoms (variables, literals, tuples, lists ...)
 highestPrec :: Int
 highestPrec = 3
 
---- Shows a pretty formatted version of an abstract Curry Program.
---- The options for pretty-printing are the 'defaultOptions' (and therefore the
---- restrictions mentioned there apply here too).
---- @param prog - a curry prog
---- @return a string, which represents the input program `prog`
-showCProg :: CurryProg -> String
+-- | Shows a pretty formatted version of an abstract Curry Program.
+--   The options for pretty-printing are the 'defaultOptions' (and therefore the
+--   restrictions mentioned there apply here too).
+showCProg :: CurryProg -- ^ a curry prog
+          -> String    -- ^ a string, which represents the input program `prog`
 showCProg = prettyCurryProg defaultOptions
 
---- Pretty-print the document generated by 'ppCurryProg', using the page width
---- specified by given options.
+-- | Pretty-print the document generated by 'ppCurryProg', using the page width
+--   specified by given options.
 prettyCurryProg :: Options -> CurryProg -> String
 prettyCurryProg opts cprog = showWidth (pageWidth opts) $ ppCurryProg opts cprog
 
---- Pretty-print a CurryProg (the representation of a program, written in Curry,
---- using AbstractCurry) according to given options.
---- This function will overwrite the module name given by options
---- with the name specified as the first component of `CurryProg`.
---- The list of imported modules is extended to all modules mentioned
---- in the program if qualified pretty printing is used.
---- This is necessary to avoid errors w.r.t. names re-exported by modules.
+-- | Pretty-print a CurryProg (the representation of a program, written in Curry,
+--   using AbstractCurry) according to given options.
+--   This function will overwrite the module name given by options
+--   with the name specified as the first component of `CurryProg`.
+--   The list of imported modules is extended to all modules mentioned
+--   in the program if qualified pretty printing is used.
+--   This is necessary to avoid errors w.r.t. names re-exported by modules.
 ppCurryProg :: Options -> CurryProg -> Doc
 ppCurryProg opts cprog@(CurryProg m ms dfltdecl clsdecls instdecls ts fs os) =
   vsepBlank
@@ -246,14 +253,14 @@ ppCurryProg opts cprog@(CurryProg m ms dfltdecl clsdecls instdecls ts fs os) =
                 then [text "{-# LANGUAGE MultiParamTypeClasses #-}"]
                 else []
 
---- Pretty-print a module name (just a string).
+-- | Pretty-print a module name (just a string).
 ppMName :: MName -> Doc
 ppMName = text
 
---- Pretty-print exports, i.e. all type and function declarations which are
---- public.
---- extract the type and function declarations which are public and gather their
---- qualified names in a list.
+-- | Pretty-print exports, i.e. all type and function declarations which are
+--   public.
+--   extract the type and function declarations which are public and gather their
+--   qualified names in a list.
 ppExports :: Options -> [CClassDecl] -> [CInstanceDecl] -> [CTypeDecl]
           -> [CFuncDecl] -> Doc
 ppExports opts clsdecls instdecls ts fs
@@ -284,9 +291,9 @@ ppConsExports opts cDecls
           cDeclToDoc       = ppQFuncParsIfInfix opts . consName
 
 
---- Pretty-print imports (list of module names) by prepending the word "import"
---- to the module name. If the qualification mode is 'Imports' or 'Full',
---- then the imports are declared as `qualified`.
+-- | Pretty-print imports (list of module names) by prepending the word "import"
+--   to the module name. If the qualification mode is 'Imports' or 'Full',
+--   then the imports are declared as `qualified`.
 ppImports :: Options -> [MName] -> Doc
 ppImports opts imps = vcatMap (\m -> text importmode <+> ppMName m)
                               (filter (/= "Prelude") imps)
@@ -295,51 +302,53 @@ ppImports opts imps = vcatMap (\m -> text importmode <+> ppMName m)
                  then "import qualified"
                  else "import"
 
---- Pretty-print operator precedence declarations.
+-- | Pretty-print operator precedence declarations.
 ppCOpDecl :: Options -> COpDecl -> Doc
 ppCOpDecl _ (COp qn fix p) =
     hsep [ppCFixity fix, int p, genericPPName (bquotesIf . not . isInfixId) qn]
 
---- Pretty-print the fixity of a function.
+-- | Pretty-print the fixity of a function.
 ppCFixity :: CFixity -> Doc
 ppCFixity CInfixOp  = text "infix"
 ppCFixity CInfixlOp = text "infixl"
 ppCFixity CInfixrOp = text "infixr"
 
---- Pretty-print operator precedence declarations.
+-- | Pretty-print operator precedence declarations.
 ppCDefaultDecl :: Options -> Maybe CDefaultDecl -> Doc
 ppCDefaultDecl _ Nothing = empty
 ppCDefaultDecl opts (Just (CDefaultDecl texps)) =
   text "default" <+> filledTupled (map (ppCTypeExpr opts) texps)
 
---- Pretty-print a class declaration.
+-- | Pretty-print a class declaration.
 ppCClassDecl :: Options -> CClassDecl -> Doc
 ppCClassDecl opts (CClass qn _ ctxt tvs fdeps funcs) =
-  hsep ([ text "class", ppCContext opts ctxt, ppType qn] 
+  hsep ([ text "class", ppCContext opts ctxt, ppType qn]
     ++ map (ppCTVarIName opts) tvs
     ++ [ppFdeps]
     ++ [text "where"])
   <$!$> indent' opts (vsepBlankMap (ppCFuncClassDecl opts) funcs)
  where
-  ppFdeps | null fdeps = empty
-          | otherwise  = text "|" <+> sep (punctuate comma (map (ppCFunDep opts) fdeps))
+  ppFdeps
+    | null fdeps = empty
+    | otherwise  = text "|"
+               <+> sep (punctuate comma (map (ppCFunDep opts) fdeps))
 
--- Pretty-print a functional dependency.
+-- | Pretty-print a functional dependency.
 ppCFunDep :: Options -> CFunDep -> Doc
 ppCFunDep opts (l, r) = sep (map (ppCTVarIName opts) l)
                     <+> rarrow
                     <+> sep (map (ppCTVarIName opts) r)
 
---- Pretty-print an instance declaration.
+-- | Pretty-print an instance declaration.
 ppCInstanceDecl :: Options -> CInstanceDecl -> Doc
 ppCInstanceDecl opts (CInstance qn ctxt tes funcs) =
-  hsep ([ text "instance", ppCContext opts ctxt, ppQType opts qn] 
-    ++ map (ppCTypeExpr' 2 opts) tes 
+  hsep ([ text "instance", ppCContext opts ctxt, ppQType opts qn]
+    ++ map (ppCTypeExpr' 2 opts) tes
     ++ [text "where"])
   <$!$> indent' opts (vsepBlankMap (ppCFuncDeclWithoutSig opts) funcs)
 
---- Pretty-print type declarations, like `data ... = ...`, `type ... = ...` or
---- `newtype ... = ...`.
+-- | Pretty-print type declarations, like `data ... = ...`, `type ... = ...` or
+--   `newtype ... = ...`.
 ppCTypeDecl :: Options -> CTypeDecl -> Doc
 ppCTypeDecl opts (CType qn _ tVars cDecls derivings) =
   hsep [ text "data", ppType qn, ppCTVarINames opts tVars
@@ -353,37 +362,37 @@ ppCTypeDecl opts (CNewType qn _ tVars cDecl derivings) =
        , ppCConsDecl opts cDecl]
   <$!$> ppDeriving opts derivings
 
---- Pretty-print deriving clause.
+-- | Pretty-print deriving clause.
 ppDeriving :: Options -> [QName] -> Doc
 ppDeriving _    []   = empty
 ppDeriving opts [cn] = text " deriving" <+> ppQType opts cn
 ppDeriving opts cls@(_:_:_) =
   text " deriving" <+> alignedTupled (map (ppQType opts) cls)
 
---- Pretty-print a list of constructor declarations, including the `=` sign.
+-- | Pretty-print a list of constructor declarations, including the `=` sign.
 ppCConsDecls :: Options -> [CConsDecl] -> Doc
 ppCConsDecls opts cDecls =
     align . sep $ [equals <+> ppCConsDecl opts (head cDecls)]
                ++ map ((bar <+>) . (ppCConsDecl opts)) (tail cDecls)
 
---- Pretty-print a constructor declaration.
+-- | Pretty-print a constructor declaration.
 ppCConsDecl :: Options -> CConsDecl -> Doc
 ppCConsDecl opts (CCons   qn _ tExps ) =
   hsep [ppFunc qn, hsepMap (ppCTypeExpr' 2 opts) tExps]
 ppCConsDecl opts (CRecord qn _ fDecls) =
   hsep [ppFunc qn <+> alignedSetSpaced (map (ppCFieldDecl opts) fDecls)]
 
---- Pretty-print a record field declaration (`field :: type`).
+-- | Pretty-print a record field declaration (`field :: type`).
 ppCFieldDecl :: Options -> CFieldDecl -> Doc
 ppCFieldDecl opts (CField qn _ tExp) = hsep [ ppFunc qn
                                             , doubleColon
                                             , ppCTypeExpr opts tExp ]
 
---- Pretty-print a document comment.
+-- | Pretty-print a document comment.
 ppCDocComment :: String -> Doc
 ppCDocComment cmt = vsepMap (text . ("--- " ++)) (lines cmt)
 
---- Pretty-print a function declaration occurring in a class declaration.
+-- | Pretty-print a function declaration occurring in a class declaration.
 ppCFuncClassDecl :: Options -> CFuncDecl -> Doc
 ppCFuncClassDecl opts fDecl@(CFunc qn _ _ tExp rs) =
     ppCFuncSignature opts qn tExp
@@ -392,14 +401,14 @@ ppCFuncClassDecl opts fDecl@(CFunc qn _ _ tExp rs) =
 ppCFuncClassDecl opts (CmtFunc cmt qn a v tExp rs) =
     ppCDocComment cmt <$!$> ppCFuncClassDecl opts (CFunc qn a v tExp rs)
 
---- Pretty-print a function declaration.
+-- | Pretty-print a function declaration.
 ppCFuncDecl :: Options -> CFuncDecl -> Doc
 ppCFuncDecl opts fDecl@(CFunc qn _ _ tExp _) =
     ppCFuncSignature opts qn tExp <$!$> ppCFuncDeclWithoutSig opts fDecl
 ppCFuncDecl opts (CmtFunc cmt qn a v tExp rs) =
     ppCDocComment cmt <$!$> ppCFuncDecl opts (CFunc qn a v tExp rs)
 
---- Pretty-print a function declaration without signature.
+-- | Pretty-print a function declaration without signature.
 ppCFuncDeclWithoutSig :: Options -> CFuncDecl -> Doc
 ppCFuncDeclWithoutSig opts fDecl@(CFunc qn _ _ _ rs) =
     ppCRules funcDeclOpts qn rs
@@ -407,7 +416,7 @@ ppCFuncDeclWithoutSig opts fDecl@(CFunc qn _ _ _ rs) =
 ppCFuncDeclWithoutSig opts (CmtFunc cmt qn a v tExp rs) =
     ppCDocComment cmt <$!$> ppCFuncDeclWithoutSig opts (CFunc qn a v tExp rs)
 
---- Pretty-print a function signature according to given options.
+-- | Pretty-print a function signature according to given options.
 ppCFuncSignature :: Options -> QName -> CQualTypeExpr -> Doc
 ppCFuncSignature opts qn tExp
     | isUntyped tExp = empty
@@ -417,12 +426,12 @@ ppCFuncSignature opts qn tExp
  where
   isUntyped te = te == CQualType (CContext []) (CTCons (pre "untyped"))
 
---- Pretty-print a qualified type expression.
+-- | Pretty-print a qualified type expression.
 ppCQualTypeExpr :: Options -> CQualTypeExpr -> Doc
 ppCQualTypeExpr opts (CQualType clsctxt texp) =
   ppCContext opts clsctxt <+> ppCTypeExpr opts texp
 
---- Pretty-print a class context.
+-- | Pretty-print a class context.
 ppCContext :: Options -> CContext -> Doc
 ppCContext _ (CContext []) = empty
 ppCContext opts (CContext [clscon]) =
@@ -430,12 +439,12 @@ ppCContext opts (CContext [clscon]) =
 ppCContext opts (CContext ctxt@(_:_:_)) =
   alignedTupled (map (ppCConstraint opts) ctxt) <+> text "=>"
 
---- Pretty-print a single class constraint.
+-- | Pretty-print a single class constraint.
 ppCConstraint :: Options -> CConstraint -> Doc
 ppCConstraint opts (cn,ts) =
   hsep $ ppQType opts cn : (map (ppCTypeExpr' prefAppPrec opts) ts)
 
---- Pretty-print a type expression.
+-- | Pretty-print a type expression.
 ppCTypeExpr :: Options -> CTypeExpr -> Doc
 ppCTypeExpr = ppCTypeExpr' tlPrec
 
@@ -473,31 +482,31 @@ ppCTypeExpr' p opts texp@(CTApply tcon targ) =
     CTApply tc         ta -> argsOfApply tc ++ [ta]
     _                     -> [] -- should not occur
 
---- Pretty-print a list of type variables horizontally separating them
---- by `space`.
+-- | Pretty-print a list of type variables horizontally separating them
+--   by `space`.
 ppCTVarINames :: Options -> [CTVarIName] -> Doc
 ppCTVarINames opts = hsepMap (ppCTVarIName opts)
 
---- Pretty-print a type variable (currently the Int is ignored).
+-- | Pretty-print a type variable (currently the Int is ignored).
 ppCTVarIName :: Options -> CTVarIName -> Doc
 ppCTVarIName _ (_, tvar) = text tvar
 
---- Pretty-print a list of function rules, concatenated vertically.
---- If there are no rules, an external rule is printed.
+-- | Pretty-print a list of function rules, concatenated vertically.
+--   If there are no rules, an external rule is printed.
 ppCRules :: Options -> QName -> [CRule] -> Doc
 ppCRules opts qn rs
     | null rs   = genericPPName parsIfInfix qn <+> text "external"
     | otherwise = vcatMap (ppCRule opts qn) rs
 
---- Pretty-print a list of function rules, concatenated vertically.
---- If there are no rules, an empty document is returned.
+-- | Pretty-print a list of function rules, concatenated vertically.
+--   If there are no rules, an empty document is returned.
 ppCRulesWithoutExternal :: Options -> QName -> [CRule] -> Doc
 ppCRulesWithoutExternal opts qn rs =
   if null rs then empty else vcatMap (ppCRule opts qn) rs
 
---- Pretty-print a rule of a function. Given a function
---- `f x y = x * y`, then `x y = x * y` is a rule consisting of `x y` as list of
---- patterns and `x * y` as right hand side.
+-- | Pretty-print a rule of a function. Given a function
+--   `f x y = x * y`, then `x y = x * y` is a rule consisting of `x y` as list of
+--   patterns and `x * y` as right hand side.
 ppCRule :: Options -> QName -> CRule -> Doc
 ppCRule opts qn rule@(CRule ps rhs) =
     (nest' opts $ sep [ ppCPattern opts (CPComb qn ps) {- exploit similarity
@@ -519,7 +528,7 @@ ppCRule opts qn rule@(CRule ps rhs) =
                                 lDecls
                                 whereOpts
 
---- Pretty-print a pattern expression.
+-- | Pretty-print a pattern expression.
 ppCPattern :: Options -> CPattern -> Doc
 ppCPattern = ppCPattern' tlPrec
 
@@ -562,11 +571,11 @@ ppCPattern' _ opts (CPLazy     p     ) = tilde <> ppCPattern' highestPrec opts p
 ppCPattern' _ opts (CPRecord   qn rps) =
     ppQFunc opts qn <+> alignedSetSpaced (map (ppCFieldPattern opts) rps)
 
---- Pretty-print a pattern variable (currently the Int is ignored).
+-- | Pretty-print a pattern variable (currently the Int is ignored).
 ppCVarIName :: Options -> CVarIName -> Doc
 ppCVarIName _ (_, pvar) = text pvar
 
---- Pretty-print given literal (Int, Float, ...).
+-- | Pretty-print given literal (Int, Float, ...).
 ppCLiteral :: Options -> CLiteral -> Doc
 ppCLiteral _ (CIntc i)    = int i
 ppCLiteral _ (CFloatc f)  = float f
@@ -575,15 +584,15 @@ ppCLiteral _ (CStringc s)
     | null s    = text "\"\"" -- necessary for pakcs
     | otherwise = text $ show s
 
---- Pretty-print a record pattern
+-- | Pretty-print a record pattern
 ppCFieldPattern :: Options -> CField CPattern -> Doc
 ppCFieldPattern opts (qn, p) = ppQFunc opts qn <+> equals <+> ppCPattern opts p
 
---- Pretty-print the right hand side of a rule (or case expression), including
---- the d sign, where `d` is the relation (as doc) between the left hand side
---- and the right hand side -- usually this is one of `=`, `->`.
---- If the right hand side contains local declarations, they will be pretty
---- printed too, further indented.
+-- | Pretty-print the right hand side of a rule (or case expression), including
+--   the `d` sign, where `d` is the relation (as doc) between the left hand side
+--   and the right hand side -- usually this is one of `=`, `->`.
+--   If the right hand side contains local declarations, they will be pretty
+--   printed too, further indented.
 ppCRhs :: Doc -> Options -> CRhs -> Doc
 ppCRhs d opts rhs = case rhs of
         CSimpleRhs  exp   lDecls ->
@@ -601,10 +610,10 @@ ppCRhs d opts rhs = case rhs of
                                   then empty
                                   else indent' opts (ppWhereDecl opts ls)
 
---- Like 'ppCRhs', but do not pretty-print local declarations.
---- Instead give caller the choice how to handle the declarations. For example
---- the function 'ppCRule' uses this to prevent local declarations from being
---- further indented.
+-- | Like 'ppCRhs', but do not pretty-print local declarations.
+--   Instead give caller the choice how to handle the declarations. For example
+--   the function 'ppCRule' uses this to prevent local declarations from being
+--   further indented.
 ppFuncRhs :: Options -> CRhs -> Doc
 {- No further enrichment of options necessary - it was done in 'ppCRule' -}
 ppFuncRhs opts (CSimpleRhs  exp _)   = ppCExpr opts exp
@@ -613,17 +622,17 @@ ppFuncRhs opts (CGuardedRhs conds _) = ppCGuardedRhs opts equals conds
 ppCaseRhs :: Options -> CRhs -> Doc
 ppCaseRhs = ppCRhs rarrow
 
---- Pretty-print guard, i.e. the `| cond d exp` part of a right hand side, where
---- `d` is the relation (as doc) between `cond` and `exp` -- usually this is
---- one of `=`, `->`.
+-- | Pretty-print guard, i.e. the `| cond d exp` part of a right hand side, where
+--   `d` is the relation (as doc) between `cond` and `exp` -- usually this is
+--   one of `=`, `->`.
 ppCGuardedRhs :: Options -> Doc -> [(CExpr, CExpr)] -> Doc
 ppCGuardedRhs opts d = align . vvsepMap ppCGuard
     where ppCGuard (e1, e2) = sep [ bar <+> ppCExpr opts e1
                                   , d   <+> ppCExpr opts e2 ]
 
---- Pretty-print local declarations . If the second argument is `text "where"`,
---- pretty-print a `where` block. If the second argument is `text "let"`,
---- pretty-print a `let` block without `in`.
+-- | Pretty-print local declarations . If the second argument is `text "where"`,
+--   pretty-print a `where` block. If the second argument is `text "let"`,
+--   pretty-print a `let` block without `in`.
 ppCLocalDecls :: Options -> Doc -> [CLocalDecl] -> Doc
 ppCLocalDecls opts d lDecls =
     (d <+>) . align . vvsepMap (ppCLocalDecl lDeclOpts) $ lDecls
@@ -633,7 +642,7 @@ ppCLocalDecls opts d lDecls =
                                 lDecls
                                 opts
 
---- Pretty-print local declarations (the part that follows the `where` keyword).
+-- | Pretty-print local declarations (the part that follows the `where` keyword).
 ppCLocalDecl :: Options -> CLocalDecl -> Doc
 ppCLocalDecl opts (CLocalFunc fDecl) =
     if showLocalSigs opts
@@ -645,8 +654,8 @@ ppCLocalDecl opts (CLocalPat  p rhs) =
 ppCLocalDecl opts (CLocalVars pvars) =
     (<+> text "free") $ hsep $ punctuate comma $ map (ppCVarIName opts) pvars
 
---- Pretty-print a `where` block, in which the word `where` stands alone in a
---- single line, above the following declarations.
+-- | Pretty-print a `where` block, in which the word `where` stands alone in a
+--   single line, above the following declarations.
 ppWhereDecl :: Options -> [CLocalDecl] -> Doc
 ppWhereDecl opts lDecls = (where_ $$)
                         . indent' opts
@@ -657,12 +666,12 @@ ppWhereDecl opts lDecls = (where_ $$)
                                 lDecls
                                 opts
 
---- Pretty-print a `let` block without `in`. In contrast to 'ppWhereDecl', the
---- word `let` is in the same line as the first local declaration.
+-- | Pretty-print a `let` block without `in`. In contrast to 'ppWhereDecl', the
+--   word `let` is in the same line as the first local declaration.
 ppLetDecl :: Options -> [CLocalDecl] -> Doc
 ppLetDecl opts = ppCLocalDecls opts (text "let")
 
---- Pretty-print an expression.
+-- | Pretty-print an expression.
 ppCExpr :: Options -> CExpr -> Doc
 ppCExpr = ppCExpr' tlPrec
 
@@ -765,52 +774,49 @@ ppCStatement opts (CSPat  pat    exp) = ppCPattern opts pat
                                     <+> ppCExpr opts exp
 ppCStatement opts (CSLet  lDecls    ) = ppLetDecl opts lDecls
 
---- Pretty-print `case`, `fcase` keywords.
+-- | Pretty-print `case`, `fcase` keywords.
 ppCCaseType :: CCaseType -> Doc
 ppCCaseType CRigid = text "case"
 ppCCaseType CFlex  = text "fcase"
 
---- Pretty-print a list of case expressions, i.e. the `p1 -> e1`,...,`pn -> en`,
---- transitions, vertically aligned.
+-- | Pretty-print a list of case expressions, i.e.
+--   the `p1 -> e1`,...,`pn -> en` transitions, vertically aligned.
 ppCases :: Options -> [(CPattern, CRhs)] -> Doc
 ppCases opts = align . vvsepMap (ppCase opts)
 
---- Pretty-print a case expression.
+-- | Pretty-print a case expression.
 ppCase :: Options -> (CPattern, CRhs) -> Doc
 ppCase opts (p, rhs) = ppCPattern opts p <+> ppCaseRhs rhsOpts rhs
     where rhsOpts = addVarsToOpts (varsOfPat p) opts
 
---- Pretty-print record field assignments like this:
----     { lab1 = exp1, ..., labn expn }
---- if it fits the page, or
----     { lab1 = exp1
----     , ...
----     , labn = expn }
---- otherwise.
+-- | Pretty-print record field assignments like this:
+---      { lab1 = exp1, ..., labn expn }
+---  if it fits the page, or
+---      { lab1 = exp1
+---      , ...
+---      , labn = expn }
+---  otherwise.
 ppRecordFields :: Options -> [CField CExpr] -> Doc
 ppRecordFields opts = alignedSetSpaced . map (ppRecordField opts)
 
---- Pretty-print a record field assignment (`fieldLabel = exp`).
+-- | Pretty-print a record field assignment (`fieldLabel = exp`).
 ppRecordField :: Options -> CField CExpr -> Doc
 ppRecordField opts (qn, exp) = ppQFunc opts qn <+> equals <+> ppCExpr opts exp
 
---- Pretty-print a QName qualified according to given options.
---- @param visNames - Depending on call, this is the namespace of visible types
----                   or of visible functions. Used to determine if `qn` is
----                   ambiguous, in case the qualification method 'OnDemand' was
----                   chosen
---- @param visVars - The in current context visible variables.
---- @param g - A doc tranformer used to manipulate (f.e. surround with
----            parentheses) the QName, after it was (maybe) qualified.
---- @param opts - The options to use.
---- @param qn - The `QName` to pretty-print.
---- @return A pretty-printed `QName`, maybe qualified (depending on settings).
-genericPPQName :: Collection QName
-               -> Collection CVarIName
-               -> (QName -> Doc -> Doc)
-               -> Options
-               -> QName
-               -> Doc
+-- | Pretty-print a QName qualified according to given options.
+genericPPQName
+  :: Collection QName      -- ^ Depending on call, this is the namespace of
+                           --   visible types or of visible functions. Used to
+                           --   determine if `qn` is ambiguous, in case the
+                           --   qualification method 'OnDemand' was chosen.
+  -> Collection CVarIName  -- ^ The variables visible in the current context.
+  -> (QName -> Doc -> Doc) -- ^ A doc tranformer used to manipulate (f.e.
+                           --   surround with parentheses) the QName, after it
+                           --   was (maybe) qualified.
+  -> Options               -- ^ The options to use.
+  -> QName                 -- ^ The `QName` to pretty-print.
+  -> Doc                   -- ^ A pretty-printed `QName`, maybe qualified
+                           --   (depending on settings).
 genericPPQName visNames visVars g opts qn@(m, f)
     | qnIsBuiltIn = name
     | null m      = name -- assume local declaration
@@ -839,73 +845,73 @@ genericPPQName visNames visVars g opts qn@(m, f)
 genericPPName :: (QName -> Doc -> Doc) -> QName -> Doc
 genericPPName f qn = f qn $ text . snd $ qn
 
---- Pretty-print a function name or constructor name qualified according to
---- given options. Use 'ppQType' or 'ppType' for pretty-printing type names.
+-- | Pretty-print a function name or constructor name qualified according to
+--   given options. Use 'ppQType' or 'ppType' for pretty-printing type names.
 ppQFunc :: Options -> QName -> Doc
 ppQFunc opts = genericPPQName (visibleFunctions opts)
                               (visibleVariables opts)
                               (flip const)
                               opts
 
---- Like 'ppQFunc', but surround name with parentheses if it is an infix
---- identifier.
+-- | Like 'ppQFunc', but surround name with parentheses if it is an infix
+--   identifier.
 ppQFuncParsIfInfix :: Options -> QName -> Doc
 ppQFuncParsIfInfix opts = genericPPQName (visibleFunctions opts)
                                          (visibleVariables opts)
                                          parsIfInfix
                                          opts
 
---- Pretty-print a function name or constructor name non-qualified.
---- Use 'ppQType' or 'ppType' for pretty-printing type names.
+-- | Pretty-print a function name or constructor name non-qualified.
+--   Use 'ppQType' or 'ppType' for pretty-printing type names.
 ppFunc :: QName -> Doc
 ppFunc = genericPPName (flip const)
 
---- Pretty-print a type (`QName`) qualified according to given options.
+-- | Pretty-print a type (`QName`) qualified according to given options.
 ppQType :: Options -> QName -> Doc
 ppQType opts = genericPPQName (visibleTypes opts) emptyCol (flip const) opts
 
---- Like 'ppQType', but surround name with parentheses if it is an infix
---- identifier.
+-- | Like 'ppQType', but surround name with parentheses if it is an infix
+--   identifier.
 ppQTypeParsIfInfix :: Options -> QName -> Doc
 ppQTypeParsIfInfix opts =
     genericPPQName (visibleTypes opts) emptyCol parsIfInfix opts
 
---- Pretty-print a type (`QName`) non-qualified.
+-- | Pretty-print a type (`QName`) non-qualified.
 ppType :: QName -> Doc
 ppType = genericPPName (flip const)
 
--- Helping function (diagnosis)
---- Check whether an operator is an infix identifier.
+-- | Helping function (diagnosis)
+--   Check whether an operator is an infix identifier.
 isInfixId :: QName -> Bool
 isInfixId = all (`elem` "~!@#$%^&*+-=<>:?./|\\") . snd
 
---- Check whether an identifier represents the unit constructor
+-- | Check whether an identifier represents the unit constructor
 isUnitCons :: QName -> Bool
 isUnitCons (_, i) = i == "()"
 
---- Check whether an identifier represents the empty list constructor
+-- | Check whether an identifier represents the empty list constructor
 isListCons :: QName -> Bool
 isListCons (_, i) = i == "[]"
 
---- Check whether an identifier represents the list constructor `:`
+-- | Check whether an identifier represents the list constructor `:`
 isConsCons :: QName -> Bool
 isConsCons (_, i) = i == ":"
 
---- Check whether an identifier represents a tuple constructor
+-- | Check whether an identifier represents a tuple constructor
 isTupleCons :: QName -> Bool
 isTupleCons (_, i) = i == mkTuple (length i)
   where mkTuple n = '(' : replicate (n - 2) ',' ++ ")"
 
---- Check whether a literal is a negative number.
+-- | Check whether a literal is a negative number.
 isNegativeLiteral :: CLiteral -> Bool
 isNegativeLiteral lit = case lit of
   CIntc   i -> i < 0
   CFloatc f -> f < 0
   _         -> False
 
---- Check if given application tree represents an if then else construct.
---- If so, return the condition, the "then expression" and the "else expression".
---- Otherwise, return `Nothing`.
+-- | Check if given application tree represents an if then else construct.
+--   If so, return the condition, the "then expression" and the "else expression".
+--   Otherwise, return `Nothing`.
 extractITE :: CExpr -> Maybe (CExpr, CExpr, CExpr)
 extractITE e = case e of
                     CApply (CApply (CApply (CSymbol ("Prelude","if_then_else"))
@@ -914,9 +920,9 @@ extractITE e = case e of
                             fExp -> Just (cond, tExp, fExp)
                     _            -> Nothing
 
---- Check if given application tree represents an infix operator application.
---- If so, return the operator, its left and its right argument. Otherwise,
---- return `Nothing`.
+-- | Check if given application tree represents an infix operator application.
+--   If so, return the operator, its left and its right argument. Otherwise,
+--   return `Nothing`.
 extractInfix :: CExpr -> Maybe (QName, CExpr, CExpr)
 extractInfix e
     = case e of CApply (CApply (CSymbol s)
@@ -925,9 +931,9 @@ extractInfix e
                     | isInfixId s -> Just (s, e1, e2)
                 _                 -> Nothing
 
---- Check if given application tree represents a tuple contructor application.
---- If so, return the constructor and its arguments in a list. Otherwise, return
---- `Nothing`.
+-- | Check if given application tree represents a tuple contructor application.
+--   If so, return the constructor and its arguments in a list.
+--   Otherwise, return `Nothing`.
 extractTuple :: CExpr -> Maybe [CExpr]
 extractTuple = extractTuple' []
     where extractTuple' es exp
@@ -936,8 +942,8 @@ extractTuple = extractTuple' []
                    CSymbol s   | isTupleCons s -> Just es
                    _                           -> Nothing
 
---- Check if given application tree represents a finite list `[x1, ..., xn]`.
---- If so, return the list elements in a list. Otherwise, return `Nothing`.
+-- | Check if given application tree represents a finite list `[x1, ..., xn]`.
+--   If so, return the list elements in a list. Otherwise, return `Nothing`.
 extractFiniteListExp :: CExpr -> Maybe [CExpr]
 extractFiniteListExp = extractFiniteListExp' []
     where extractFiniteListExp' es exp =
@@ -948,8 +954,8 @@ extractFiniteListExp = extractFiniteListExp' []
                  CSymbol s   | isListCons s -> Just $ reverse es
                  _                          -> Nothing
 
---- Check if given construct pattern represents a finite list `[x1, ..., xn]`.
---- If so, return the list elements in a list. Otherwise, return `Nothing`.
+-- | Check if given construct pattern represents a finite list `[x1, ..., xn]`.
+--   If so, return the list elements in a list. Otherwise, return `Nothing`.
 extractFiniteListPattern :: CPattern -> Maybe [CPattern]
 extractFiniteListPattern = extractFiniteListPattern' []
     where extractFiniteListPattern' es pat =
@@ -1053,49 +1059,45 @@ addFuncNamesToOpts ns o =
 addVarsAndFuncNamesToOpts :: [CVarIName] -> [QName] -> Options -> Options
 addVarsAndFuncNamesToOpts vs ns = addVarsToOpts vs . addFuncNamesToOpts ns
 
---- Generates a list of options with increasing numbers of visible variables
---- and function names. Resulting lists are useful to match the scopes of
---- do expressions and list comprehensions, where latter statements see previous
---- variables and functions names, but prior elements do not see subsequent
---- variables and function names.
---- Note that `last $ optsWithIncreasingNamespaces varsOf funcNamesOf xs opts`
---- are options which contain all variables and function names of xs.
---- @param varsOf - a projection function
---- @param funcNamesOf - a projection function
---- @xs - a list [x1, x2, ...] of elements to which the projection functions
----       will be applied
---- @param opts - root options
---- @return a list `[opts0, opts1, opts2, ...]`, where
----         `opts == opts0`,
----         `opts1 == opts0` plus vars and funcNames of `x1`,
----         `opts2 == opts1` plus vars and funcNames of `x2`,
----         ...
-optsWithIncreasingNamespaces :: (a -> [CVarIName])
-                             -> (a -> [QName])
-                             -> [a]
-                             -> Options
-                             -> [Options]
+-- | Generates a list of options with increasing numbers of visible variables
+---  and function names. Resulting lists are useful to match the scopes of
+---  do expressions and list comprehensions, where latter statements see previous
+---  variables and functions names, but prior elements do not see subsequent
+---  variables and function names.
+---  Note that `last $ optsWithIncreasingNamespaces varsOf funcNamesOf xs opts`
+---  are options which contain all variables and function names of xs.
+optsWithIncreasingNamespaces
+  :: (a -> [CVarIName]) -- ^ `varsOf` - a projection function
+  -> (a -> [QName])     -- ^ `funcNamesOf` - a projection function
+  -> [a]                -- ^ `xs` - a list `[x1, x2, ...]` of elements to which the projection
+                        --          functions will be applied
+  -> Options            -- ^ `opts` - root options
+  -> [Options]          -- ^ a list `[opts0, opts1, opts2, ...]`, where
+                        --   `opts == opts0`,
+                        --   `opts1 == opts0` plus vars and funcNames of `x1`,
+                        --   `opts2 == opts1` plus vars and funcNames of `x2`,
+                        --   ...
 optsWithIncreasingNamespaces varsOf funcNamesOf xs opts =
     scanl (flip . uncurry $ addVarsAndFuncNamesToOpts) opts varsAndFuncNamesOfXs
     where varsAndFuncNamesOfXs = map varsOf xs `zip` map funcNamesOf xs
 
--- Helping function (gather variables occurring in argument)
---- In contrast to `AbstractCurry.Select.varsOfLDecl`, this function does not
---- include variables of right hand sides.
+-- Helping function (gather variables occurring in argument).
+-- In contrast to `AbstractCurry.Select.varsOfLDecl`, this function does not
+-- include variables of right hand sides.
 varsOfLDecl :: CLocalDecl -> [CVarIName]
 varsOfLDecl (CLocalFunc f      ) = varsOfFDecl f
 varsOfLDecl (CLocalPat  p     _) = varsOfPat p
 varsOfLDecl (CLocalVars lvars  ) = lvars
 
---- In contrast to `AbstractCurry.Select.varsOfFDecl`, this function does not
---- include variables of right hand sides.
+-- In contrast to `AbstractCurry.Select.varsOfFDecl`, this function does not
+-- include variables of right hand sides.
 varsOfFDecl :: CFuncDecl -> [CVarIName]
 varsOfFDecl (CFunc     _ _ _ _ r) = concatMap varsOfRule r
 varsOfFDecl (CmtFunc _ _ _ _ _ r) = concatMap varsOfRule r
     where varsOfRule (CRule pats _) = concatMap varsOfPat pats
 
---- In contrast to `AbstractCurry.Select.varsOfStat`, this function does not
---- include variables of right hand sides.
+-- In contrast to `AbstractCurry.Select.varsOfStat`, this function does not
+-- include variables of right hand sides.
 varsOfStat :: CStatement -> [CVarIName]
 varsOfStat (CSExpr _   ) = []
 varsOfStat (CSPat  p  _) = varsOfPat p

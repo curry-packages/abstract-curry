@@ -1,11 +1,11 @@
 ------------------------------------------------------------------------------
---- Some tests for AbstractCurry libraries.
----
---- To run all tests automatically by the currycheck tool, use the command:
---- "curry-check testAbstractCurry"
----
---- @author Michael Hanus
---- @version November 2020
+--  | Some tests for AbstractCurry libraries.
+--
+--    To run all tests automatically by the currycheck tool, use the command:
+--    "curry-check testAbstractCurry"
+--
+--    Author : Michael Hanus
+--    Version: September 2025
 ------------------------------------------------------------------------------
 
 import Control.Monad ( unless )

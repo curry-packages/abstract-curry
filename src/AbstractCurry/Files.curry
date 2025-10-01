@@ -1,13 +1,13 @@
 ------------------------------------------------------------------------------
---- This library defines various I/O actions to read Curry programs and
---- transform them into the AbstractCurry representation and to write
---- AbstractCurry files.
----
---- Assumption: an abstract Curry program is stored in file with
---- extension `.acy` in the subdirectory `.curry`
----
---- @author Michael Hanus, Bjoern Peemoeller, Jan Tikovsky, Finn Teegen
---- @version August 2025
+-- | This library defines various I/O actions to read Curry programs and
+--   transform them into the AbstractCurry representation and to write
+--   AbstractCurry files.
+--
+--   Assumption: an abstract Curry program is stored in file with
+--   extension `.acy` in the subdirectory `.curry`
+--
+--   Author : Michael Hanus, Bjoern Peemoeller, Jan Tikovsky, Finn Teegen
+--   Version: September 2025
 -------------------------------------------------------------------------------
 {-# LANGUAGE CPP #-}
 
@@ -33,19 +33,20 @@ import ReadShowTerm         ( readsUnqualifiedTerm, showTerm )
 import AbstractCurry.Select ( imports )
 import AbstractCurry.Types
 
--- ---------------------------------------------------------------------------
---- I/O action which parses a Curry program and returns the corresponding
---- typed Abstract Curry program.
---- Thus, the argument is the file name without suffix ".curry"
---- or ".lcurry") and the result is a Curry term representing this
---- program.
+------------------------------------------------------------------------------
+-- | I/O action which parses a Curry program and returns the corresponding
+--   typed Abstract Curry program.
+--   Thus, the argument is the file name without suffix ".curry"
+--   or ".lcurry") and the result is a Curry term representing this
+--   program.
 readCurry :: String -> IO CurryProg
 readCurry prog = readCurryWithParseOptions prog (setQuiet True defaultParams)
 
---- Read an AbstractCurry file with all its imports.
---- @param modname - Module name or file name of Curry module
---- @return a list of curry programs, having the AbstractCurry file as head.
-readCurryWithImports :: String -> IO [CurryProg]
+-- |  Read an AbstractCurry file with all its imports.
+readCurryWithImports
+  :: String         -- ^ Module name or file name of Curry module
+  -> IO [CurryProg] -- ^ List of curry programs, having
+                    --   the `AbstractCurry` file as head
 readCurryWithImports modname = collect [] [modname]
  where
   collect _        []     = return []
@@ -70,8 +71,8 @@ tryReadCurryWithImports modname = collect [] [modname]
           results <- collect (m:imported) (ms ++ is)
           return (either Left (Right . (prog :)) results)
 
---- I/O action which tries to parse a Curry module and returns
---- either an error message or the corresponding AbstractCurry program.
+-- | I/O action which tries to parse a Curry module and returns
+--   either an error message or the corresponding AbstractCurry program.
 tryReadCurryFile :: String -> IO (Either String CurryProg)
 tryReadCurryFile m = do
   mbSrc <- lookupModuleSourceInLoadPath m
@@ -96,9 +97,10 @@ tryReadCurryFile m = do
                 Right p   -> return (Right p)
  where cancel str = return (Left str)
 
---- Try to parse an AbstractCurry file.
---- @param fn  - file name of AbstractCurry file
-tryParse :: String -> IO (Either String CurryProg)
+-- | Try to parse an AbstractCurry file.
+tryParse
+  :: String -- ^ File name of AbstractCurry file
+  -> IO (Either String CurryProg)
 tryParse fn = do
   exists <- doesFileExist fn
   if not exists
@@ -116,28 +118,28 @@ tryParse fn = do
                                 fn ++ "': no parse"
  where cancel str = return (Left str)
 
---- I/O action which parses a Curry program and returns the corresponding
---- untyped AbstractCurry program.
---- The argument is the file name without suffix ".curry"
---- or ".lcurry") and the result is a Curry term representing this
---- program.
---- In an untyped AbstractCurry program, the type signatures
---- of operations are the type signatures provided by the programmer
---- (and not the type signatures inferred by the front end).
---- If the programmer has not provided an explicit type signature,
---- the function declaration contains the type `(CTCons ("Prelude","untyped")`.
+-- | I/O action which parses a Curry program and returns the corresponding
+--   untyped AbstractCurry program.
+--   The argument is the file name without suffix ".curry"
+--   or ".lcurry") and the result is a Curry term representing this
+--   program.
+--   In an untyped AbstractCurry program, the type signatures
+--   of operations are the type signatures provided by the programmer
+--   (and not the type signatures inferred by the front end).
+--   If the programmer has not provided an explicit type signature,
+--   the function declaration contains the type `(CTCons ("Prelude","untyped")`.
 readUntypedCurry :: String -> IO CurryProg
 readUntypedCurry prog =
   readUntypedCurryWithParseOptions prog (setQuiet True defaultParams)
 
---- I/O action which reads a typed Curry program from a file (with extension
---- ".acy") with respect to some parser options.
---- This I/O action is used by the standard action 'readCurry'.
---- It is currently predefined only in Curry2Prolog.
---- @param progfile - the program file name (without suffix ".curry")
---- @param options - parameters passed to the front end
-
-readCurryWithParseOptions :: String -> FrontendParams -> IO CurryProg
+-- | I/O action which reads a typed Curry program from a file (with extension
+--   ".acy") with respect to some parser options.
+--   This I/O action is used by the standard action 'readCurry'.
+--   It is currently predefined only in Curry2Prolog.
+readCurryWithParseOptions
+  :: String         -- ^ The program file name (without suffix ".curry")
+  -> FrontendParams -- ^ parameters passed to the front end
+  -> IO CurryProg
 readCurryWithParseOptions progname options = do
   let modname = takeFileName progname
   mbsrc <- lookupModuleSourceInLoadPath progname
@@ -150,14 +152,14 @@ readCurryWithParseOptions progname options = do
       callFrontendWithParams ACY options progname
       readAbstractCurryFile (abstractCurryFileName (dir </> modname))
 
---- I/O action which reads an untyped Curry program from a file (with extension
---- ".uacy") with respect to some parser options. For more details
---- see function 'readCurryWithParseOptions'
---- In an untyped AbstractCurry program, the type signatures
---- of operations are the type signatures provided by the programmer
---- (and not the type signatures inferred by the front end).
---- If the programmer has not provided an explicit type signature,
---- the function declaration contains the type `(CTCons ("Prelude","untyped")`.
+-- | I/O action which reads an untyped Curry program from a file (with extension
+--   ".uacy") with respect to some parser options. For more details
+--   see function 'readCurryWithParseOptions'
+--   In an untyped AbstractCurry program, the type signatures
+--   of operations are the type signatures provided by the programmer
+--   (and not the type signatures inferred by the front end).
+--   If the programmer has not provided an explicit type signature,
+--   the function declaration contains the type `(CTCons ("Prelude","untyped")`.
 readUntypedCurryWithParseOptions :: String -> FrontendParams -> IO CurryProg
 readUntypedCurryWithParseOptions progname options = do
   let modname = takeFileName progname
@@ -172,25 +174,25 @@ readUntypedCurryWithParseOptions progname options = do
       callFrontendWithParams UACY options progname
       readAbstractCurryFile (untypedAbstractCurryFileName (dir </> modname))
 
---- Transforms a name of a Curry program (with or without suffix ".curry"
---- or ".lcurry") into the name of the file containing the
---- corresponding AbstractCurry program.
+-- | Transforms a name of a Curry program (with or without suffix ".curry"
+--   or ".lcurry") into the name of the file containing the
+--   corresponding AbstractCurry program.
 abstractCurryFileName :: String -> String
 abstractCurryFileName prog = inCurrySubdir (stripCurrySuffix prog) <.> "acy"
 
---- Transforms a name of a Curry program (with or without suffix ".curry"
---- or ".lcurry") into the name of the file containing the
---- corresponding untyped AbstractCurry program.
+-- | Transforms a name of a Curry program (with or without suffix ".curry"
+--   or ".lcurry") into the name of the file containing the
+--   corresponding untyped AbstractCurry program.
 untypedAbstractCurryFileName :: String -> String
 untypedAbstractCurryFileName prog =
   inCurrySubdir (stripCurrySuffix prog) <.> "uacy"
 
---- I/O action which reads an AbstractCurry program from a file in ".acy"
---- format. In contrast to <CODE>readCurry</CODE>, this action does not parse
---- a source program. Thus, the argument must be the name of an existing
---- file (with suffix ".acy") containing an AbstractCurry program in ".acy"
---- format and the result is a Curry term representing this program.
---- It is currently predefined only in Curry2Prolog.
+-- | I/O action which reads an AbstractCurry program from a file in ".acy"
+--   format. In contrast to <CODE>readCurry</CODE>, this action does not parse
+--   a source program. Thus, the argument must be the name of an existing
+--   file (with suffix ".acy") containing an AbstractCurry program in ".acy"
+--   format and the result is a Curry term representing this program.
+--   It is currently predefined only in Curry2Prolog.
 readAbstractCurryFile :: FilePath -> IO CurryProg
 readAbstractCurryFile filename = do
   exacy <- doesFileExist filename
@@ -213,10 +215,9 @@ readAbstractCurryFile filename = do
                                 filename ++ "': no parse"
       else error $ "AbstractCurry: incompatible file found: "++fname
 
---- Tries to read an AbstractCurry file and returns
----
----  * Left err  , where err specifies the error occurred
----  * Right prog, where prog is the AbstractCurry program
+-- | Tries to read an AbstractCurry file and returns 'Nothing' if the file
+--   does not exist or 'Just prog' if the file exists and contains
+--   a valid AbstractCurry program.
 tryReadACYFile :: String -> IO (Maybe CurryProg)
 tryReadACYFile fn = do
   exists <- doesFileExist fn
@@ -249,9 +250,9 @@ readACYString s =
                                      else Nothing
        _        -> Nothing
 
---- Writes an AbstractCurry program into a file in ".acy" format.
---- The first argument must be the name of the target file
---- (with suffix ".acy").
+-- | Writes an AbstractCurry program into a file in ".acy" format.
+--   The first argument must be the name of the target file
+--   (with suffix ".acy").
 writeAbstractCurryFile :: String -> CurryProg -> IO ()
 writeAbstractCurryFile file prog =
 #ifdef __KMCC__
