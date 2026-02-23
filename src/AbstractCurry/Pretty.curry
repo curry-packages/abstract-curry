@@ -545,7 +545,7 @@ ppCPattern' p opts pat@(CPComb qn ps)
     | isApp qn       = parensIf (p >= prefAppPrec)
                      $ ppCPattern' infAppPrec opts (ps !! 0)
                    <+> ppCPattern' prefAppPrec opts (ps !! 1)
-    | isTupleCons qn = filledTupled . map (ppCPattern opts) $ ps
+    | isTupleCons qn = filledPatTupled . map (ppCPattern opts) $ ps
     | isFinLis pat   = let ps' = fromJust $ extractFiniteListPattern pat
                        in  alignedPatList . map (ppCPattern opts) $ ps'
     | isInfixId qn   =
@@ -996,10 +996,11 @@ encloseSepSpaced l r s = encloseSep (l <> space) (space <> r) (s <> space)
 -- if it is a pattern occurring in a case expression or let/where declaration.
 alignedPatList :: [Doc] -> Doc
 alignedPatList ds = encloseSep lbracket rbracket space (addCommas ds)
- where
-  addCommas []       = []
-  addCommas [x]      = [x]
-  addCommas (x:y:zs) = (x <> comma) : addCommas (y:zs)
+
+addCommas :: [Doc] -> [Doc]
+addCommas []       = []
+addCommas [x]      = [x]
+addCommas (x:y:zs) = (x <> comma) : addCommas (y:zs)
 
 alignedList :: [Doc] -> Doc
 alignedList = encloseSep lbracket rbracket comma
@@ -1012,6 +1013,12 @@ alignedSetSpaced = encloseSepSpaced lbrace rbrace comma
 
 alignedTupled :: [Doc] -> Doc
 alignedTupled = encloseSep lparen rparen comma
+
+-- Pretty-print a tuple occurring in a pattern. The items are not vertically
+-- aligned with the left bracket since this might be syntactically wrong
+-- if it is a pattern occurring in a case expression or let/where declaration.
+filledPatTupled :: [Doc] -> Doc
+filledPatTupled ds = fillEncloseSep lparen rparen space (addCommas ds)
 
 filledTupled :: [Doc] -> Doc
 filledTupled = fillEncloseSep lparen rparen comma
