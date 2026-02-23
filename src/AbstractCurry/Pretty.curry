@@ -4,7 +4,7 @@
 --   This library provides a pretty-printer for AbstractCurry modules.
 --
 --   Author : Yannik Potdevin (with changes by Michael Hanus)
---   Version: September 2025
+--   Version: February 2026
 ------------------------------------------------------------------------------
 
 module AbstractCurry.Pretty
@@ -547,7 +547,7 @@ ppCPattern' p opts pat@(CPComb qn ps)
                    <+> ppCPattern' prefAppPrec opts (ps !! 1)
     | isTupleCons qn = filledTupled . map (ppCPattern opts) $ ps
     | isFinLis pat   = let ps' = fromJust $ extractFiniteListPattern pat
-                       in  alignedList . map (ppCPattern opts) $ ps'
+                       in  alignedPatList . map (ppCPattern opts) $ ps'
     | isInfixId qn   =
         case ps of [l, r] -> parensIf (p >= infAppPrec)
                            $ hsep [ ppCPattern' p' opts l, qnDoc
@@ -990,6 +990,13 @@ fillSepMap f = fillSep . map f
 
 encloseSepSpaced :: Doc -> Doc -> Doc -> [Doc] -> Doc
 encloseSepSpaced l r s = encloseSep (l <> space) (space <> r) (s <> space)
+
+-- Pretty-print a list occurring in a pattern. The items are not vertically
+-- aligned with the left bracket since this might be syntactically wrong
+-- if it is a pattern occurring in a case expression or let/where declaration.
+alignedPatList :: [Doc] -> Doc
+alignedPatList =
+  encloseSep (lbracket <> space) (space <> rbracket) (space <> comma)
 
 alignedList :: [Doc] -> Doc
 alignedList = encloseSep lbracket rbracket comma
