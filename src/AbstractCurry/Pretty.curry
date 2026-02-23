@@ -995,8 +995,11 @@ encloseSepSpaced l r s = encloseSep (l <> space) (space <> r) (s <> space)
 -- aligned with the left bracket since this might be syntactically wrong
 -- if it is a pattern occurring in a case expression or let/where declaration.
 alignedPatList :: [Doc] -> Doc
-alignedPatList =
-  encloseSep (lbracket <> space) (space <> rbracket) (space <> comma)
+alignedPatList ds = encloseSep lbracket rbracket space (addCommas ds)
+ where
+  addCommas []       = []
+  addCommas [x]      = [x]
+  addCommas (x:y:zs) = (x <> comma) : addCommas (y:zs)
 
 alignedList :: [Doc] -> Doc
 alignedList = encloseSep lbracket rbracket comma
