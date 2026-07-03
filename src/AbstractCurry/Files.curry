@@ -7,9 +7,8 @@
 --   extension `.acy` in the subdirectory `.curry`
 --
 --   Author : Michael Hanus, Bjoern Peemoeller, Jan Tikovsky, Finn Teegen
---   Version: September 2025
+--   Version: July 2026
 -------------------------------------------------------------------------------
-{-# LANGUAGE CPP #-}
 
 module AbstractCurry.Files
   ( readCurry, readCurryWithParseOptions, readCurryWithImports, tryReadCurryFile
@@ -239,12 +238,7 @@ tryReadACYFile fn = do
 
 readACYString :: String -> Maybe CurryProg
 readACYString s =
-  case
-#ifdef __KMCC__
-       reads s
-#else
-       readsUnqualifiedTerm ["AbstractCurry.Types","Prelude"] s
-#endif
+  case readsUnqualifiedTerm ["AbstractCurry.Types","Prelude"] s
     of []       -> Nothing
        [(p,tl)] -> if all isSpace tl then Just p
                                      else Nothing
@@ -255,11 +249,7 @@ readACYString s =
 --   (with suffix ".acy").
 writeAbstractCurryFile :: String -> CurryProg -> IO ()
 writeAbstractCurryFile file prog =
-#ifdef __KMCC__
-  writeFile file (show prog)
-#else
   writeFile file (showTerm prog)
-#endif
 
 readCompleteFile :: FilePath -> IO String
 readCompleteFile fn = openFile fn ReadMode >>= hGetContents
